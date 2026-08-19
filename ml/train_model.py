@@ -1,7 +1,7 @@
 import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import joblib
-from sklearn.ensemble import RandomForestClassifier
+import joblib  # type: ignore
+from sklearn.ensemble import RandomForestClassifier  # type: ignore
 from ml.feature_extractor import FeatureExtractor
 
 def train_dummy_model():

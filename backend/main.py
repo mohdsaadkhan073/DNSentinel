@@ -1,6 +1,6 @@
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File  # type: ignore
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from shared.schemas import MetricsSummary, DNSQuery, ActionDecision
 from shared.config import FASTAPI_HOST, FASTAPI_PORT
 from backend.database import DatabaseManager
@@ -121,5 +121,5 @@ async def websocket_telemetry_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # type: ignore
     uvicorn.run("backend.main:app", host=FASTAPI_HOST, port=FASTAPI_PORT, reload=True)

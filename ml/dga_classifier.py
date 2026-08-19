@@ -1,5 +1,5 @@
 import os
-import joblib
+import joblib  # type: ignore
 from shared.schemas import MLDgaResult
 from ml.feature_extractor import FeatureExtractor
 
