@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from shared.schemas import MetricsSummary, DNSQuery, ActionDecision
@@ -12,21 +13,6 @@ from ml.dga_classifier import DGAClassifier
 from passive.tunnel_detector import TunnelDetector
 from passive.pcap_parser import PCAPParser
 from passive.batch_analyzer import BatchAnalyzer
-
-app = FastAPI(
-    title="DNSentinel Threat Detection Telemetry API",
-    version="2.0.0",
-    description="FastAPI REST & WebSocket Backend for SIH1524 — DNSentinel Platform"
-)
-
-# CORS configuration for React Dashboard
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Instantiate Core System Components
 dns_cache = DNSCache()
@@ -44,10 +30,27 @@ db_manager = DatabaseManager()
 ws_manager = WebSocketManager()
 batch_analyzer = BatchAnalyzer(orchestrator=orchestrator)
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await db_manager.init_db()
     print("[Backend] DNSentinel FastAPI Telemetry Server initialized successfully.")
+    yield
+
+app = FastAPI(
+    title="DNSentinel Threat Detection Telemetry API",
+    version="2.0.0",
+    description="FastAPI REST & WebSocket Backend for SIH1524 — DNSentinel Platform",
+    lifespan=lifespan
+)
+
+# CORS configuration for React Dashboard
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
