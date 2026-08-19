@@ -64,7 +64,7 @@ To prevent merge conflicts and ensure parallel development, file ownership is st
 
 ## 💻 Step-by-Step Complete Clone & Local Setup Guide
 
-Follow these exact commands to clone, configure, and execute the complete system locally.
+Follow these exact commands to clone, configure, and execute the complete DNSentinel platform locally.
 
 ### 1. Prerequisites Check
 Ensure your computer has Python 3.10+ and Node.js 18+ installed:
@@ -80,7 +80,7 @@ npm --version
 ```bash
 # Clone the repository
 git clone <your-repository-url>
-cd EliteCore
+cd DNSentinel
 
 # Checkout the development branch
 git checkout development
@@ -134,13 +134,13 @@ python ml/train_model.py
 python -m backend.main
 ```
 
-*The backend server will run on `http://localhost:8000`. You can inspect interactive API documentation at `http://localhost:8000/docs`.*
+*The DNSentinel backend server will run on `http://localhost:8000`. You can inspect interactive API documentation at `http://localhost:8000/docs`.*
 
 ---
 
 ### 4. Frontend Setup & Execution (New Terminal Window)
 
-Open a **second terminal window**, navigate to the `EliteCore` root directory, and run:
+Open a **second terminal window**, navigate to the `DNSentinel` root directory, and run:
 
 ```bash
 # Navigate to frontend folder
@@ -153,7 +153,7 @@ npm install
 npm run dev
 ```
 
-*The frontend dashboard will run locally at `http://localhost:3000` (or `http://localhost:5173`).*
+*The DNSentinel frontend dashboard will run locally at `http://localhost:3000` (or `http://localhost:5173`).*
 
 ---
 
@@ -172,12 +172,12 @@ $$\text{RiskScore} = \min(100, \text{round}(1.0 \times \text{IntelMatch} + 0.40 
 Below is an exhaustive breakdown explaining the code and purpose of every single directory and file in the project.
 
 ```text
-EliteCore/
+DNSentinel/
 │
 ├── .gitignore                      # Git configuration ignoring bytecode, .venv, node_modules, dist, and .db files
 ├── .env.example                    # Environment template for ports, upstream resolvers, and risk thresholds
 ├── requirements.txt                # Python backend dependencies (FastAPI, Scapy, dnspython, scikit-learn, etc.)
-├── README.md                       # Comprehensive master documentation, RACI matrix, setup guide, and directory map
+├── README.md                       # Master documentation, RACI matrix, setup guide, and directory map
 │
 ├── shared/                         # Core Intellectual & Shared Schema Layer (Member 1: Team Lead)
 │   ├── __init__.py                 # Package marker for shared utilities
