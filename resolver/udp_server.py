@@ -1,6 +1,8 @@
 import socket
+import select
+import threading
 import asyncio
-import uuid
+import time
 from typing import Optional, Tuple
 
 try:
@@ -15,6 +17,7 @@ from shared.schemas import DNSQuery, ProtocolType, ActionDecision
 from shared.config import DNS_UDP_PORT
 from resolver.upstream_client import UpstreamDNSClient
 from resolver.action_handler import ActionHandler
+from resolver.metrics import ResolverMetrics, resolver_metrics
 
 BUFFER_SIZE: int = 4096
 
@@ -32,12 +35,14 @@ class UDPResolverServer:
         orchestrator=None,
         upstream_client: Optional[UpstreamDNSClient] = None,
         action_handler=ActionHandler,
+        metrics: Optional[ResolverMetrics] = None,
         host: str = "0.0.0.0",
         port: int = DNS_UDP_PORT,
     ):
         self.orchestrator = orchestrator
         self.upstream_client = upstream_client or UpstreamDNSClient()
         self.action_handler = action_handler or ActionHandler
+        self.metrics = metrics or resolver_metrics
         self.host = host
         self.port = port
         self.running = False
@@ -117,18 +122,26 @@ class UDPResolverServer:
         1. Decodes query into DNSQuery
         2. Routes to Orchestrator for Threat Intel / Risk Engine evaluation
         3. Generates synthetic response (on BLOCK) or forwards to upstream (on ALLOW/SUSPICIOUS)
-        4. Transmits response back to client socket
+        4. Instruments ResolverMetrics with total round-trip elapsed latency
+        5. Transmits response back to client socket
         """
+        start_time = time.perf_counter()
         query = self.decode_dns_query(data, addr)
         if query is None:
             # Malformed query: safely drop without server crash
             return None
 
         response: Optional[bytes] = None
+        action_decision = ActionDecision.ALLOW
+        cache_hit = False
+        upstream_failed = False
 
         if self.orchestrator:
             try:
                 decision = self.orchestrator.process_query(query)
+                action_decision = decision.action
+                cache_hit = decision.cache_hit
+
                 if decision.action == ActionDecision.BLOCK:
                     # BLOCK: Return synthetic 0.0.0.0 sinkhole response
                     response = self.action_handler.handle_block(
@@ -141,15 +154,32 @@ class UDPResolverServer:
                     response = self.upstream_client.forward_query(data)
                     if response is None:
                         # Upstream total failure: Return synthetic SERVFAIL
+                        upstream_failed = True
                         response = self.action_handler.create_servfail_response(data)
             except Exception:
                 # Orchestrator failure recovery: Return SERVFAIL
+                upstream_failed = True
                 response = self.action_handler.create_servfail_response(data)
         else:
             # Standalone mode without orchestrator: Direct upstream forward
             response = self.upstream_client.forward_query(data)
             if response is None:
+                upstream_failed = True
                 response = self.action_handler.create_servfail_response(data)
+
+        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+
+        if self.metrics:
+            try:
+                self.metrics.record_query(
+                    protocol=ProtocolType.UDP,
+                    action=action_decision,
+                    latency_ms=elapsed_ms,
+                    cache_hit=cache_hit,
+                    upstream_failed=upstream_failed,
+                )
+            except Exception:
+                pass
 
         # Transmit response back to client if socket provided and response available
         if sock and response:
@@ -160,30 +190,14 @@ class UDPResolverServer:
 
         return response
 
-    def _recv_with_timeout(self) -> Tuple[Optional[bytes], Optional[Tuple[str, int]]]:
-        """
-        Helper for receiving datagram with socket timeout.
-        """
-        if not self._sock:
-            return None, None
-        try:
-            self._sock.settimeout(0.5)
-            data, addr = self._sock.recvfrom(BUFFER_SIZE)
-            return data, addr
-        except (socket.timeout, TimeoutError):
-            return None, None
-        except OSError:
-            return None, None
-
-    async def start(self):
-        """
-        Starts the asynchronous UDP DNS listening loop on configured host and port.
-        """
-        self.running = True
+    def _serve_loop(self):
+        """Synchronous datagram listening loop with non-blocking select."""
         try:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._sock.bind((self.host, self.port))
+            self._sock.setblocking(False)
+            self.running = True
             print(f"[Resolver] UDP DNS Server listening on {self.host}:{self.port}...")
         except Exception as e:
             self.running = False
@@ -192,17 +206,40 @@ class UDPResolverServer:
                 self._sock = None
             raise OSError(f"Failed to bind UDP DNS Server on {self.host}:{self.port}: {e}")
 
+        while self.running:
+            try:
+                r, _, _ = select.select([self._sock], [], [], 0.05)
+                if r and self._sock:
+                    try:
+                        data, addr = self._sock.recvfrom(BUFFER_SIZE)
+                        if data:
+                            self.handle_packet(data, addr, self._sock)
+                    except (BlockingIOError, socket.error):
+                        pass
+            except Exception:
+                if not self.running:
+                    break
+
+        if self._sock:
+            try:
+                self._sock.close()
+            except Exception:
+                pass
+            self._sock = None
+
+    def start_sync(self):
+        """Starts the UDP DNS server synchronously in a background daemon thread."""
+        thread = threading.Thread(target=self._serve_loop, daemon=True)
+        thread.start()
+        timeout = 2.0
+        start = time.time()
+        while not self.running and time.time() - start < timeout:
+            time.sleep(0.02)
+
+    async def start(self):
+        """Starts the asynchronous UDP DNS listening loop on configured host and port."""
         loop = asyncio.get_running_loop()
-        try:
-            while self.running:
-                data, addr = await loop.run_in_executor(None, self._recv_with_timeout)
-                if not data or not addr or not self.running:
-                    continue
-                self.handle_packet(data, addr, self._sock)
-        except asyncio.CancelledError:
-            pass
-        finally:
-            self.stop()
+        await loop.run_in_executor(None, self.start_sync)
 
     def stop(self):
         """
