@@ -77,7 +77,25 @@ export const App: React.FC = () => {
     }
   ]);
 
-  // WebSocket Telemetry Connection with Exponential Auto-Reconnect
+  // Fetch metrics & queries from REST API
+  const refreshData = async () => {
+    try {
+      const resMetrics = await fetch('http://localhost:8000/api/v1/metrics/summary');
+      if (resMetrics.ok) {
+        const dataMetrics = await resMetrics.json();
+        setMetrics(dataMetrics);
+      }
+      const resQueries = await fetch('http://localhost:8000/api/v1/dns/queries');
+      if (resQueries.ok) {
+        const dataQueries = await resQueries.json();
+        if (dataQueries.length > 0) {
+          setQueries(dataQueries);
+        }
+      }
+    } catch (err) {}
+  };
+
+  // WebSocket Telemetry Connection with Auto-Reconnect
   useEffect(() => {
     let ws: WebSocket | null = null;
     let timer: any = null;
@@ -118,6 +136,7 @@ export const App: React.FC = () => {
     };
 
     connectWS();
+    refreshData();
 
     return () => {
       if (timer) clearTimeout(timer);
@@ -136,30 +155,33 @@ export const App: React.FC = () => {
         setSelectedDecision(decision);
       }
     } catch (err) {
-      alert(`Backend API offline. Starting local fallback server. Check terminal.`);
+      alert(`Backend API offline. Make sure 'python -m backend.main' is running.`);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col">
-      <Header 
-        wsConnected={wsConnected}
-        onOpenUpload={() => setIsUploadOpen(true)}
-        onRunTestQuery={runTestQuery}
-      />
+    <div className="min-h-screen bg-[#0B0F14] text-[#E6EDF3] flex flex-col p-4 md:p-6">
+      <div className="max-w-7xl mx-auto w-full space-y-6">
+        
+        {/* Modern Cyber Header */}
+        <Header 
+          wsConnected={wsConnected}
+          onOpenUpload={() => setIsUploadOpen(true)}
+          onRunTestQuery={runTestQuery}
+          onRefresh={refreshData}
+        />
 
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
-        {/* Metric Cards Banner */}
+        {/* Metric Stat Cards */}
         <MetricCards summary={metrics} />
 
         {/* Forensic Report Alert (If PCAP / Zeek uploaded) */}
         {forensicReport && (
-          <div className="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex items-center justify-between text-xs font-mono">
+          <div className="cyber-card p-4 rounded-2xl border-l-4 border-l-[#00D4FF] flex items-center justify-between text-xs font-mono">
             <div>
-              <span className="font-bold text-cyan-300">Forensic Packet Analysis Complete: </span>
-              Analyzed {forensicReport.total_queries_analyzed} queries from <span className="text-white">{forensicReport.filename}</span> ({forensicReport.blocked} Blocked, {forensicReport.suspicious} Suspicious, {forensicReport.allowed} Allowed).
+              <span className="font-bold text-[#00D4FF]">Forensic Packet Analysis Complete: </span>
+              Analyzed {forensicReport.total_queries_analyzed} queries from <span className="text-white font-bold">{forensicReport.filename}</span> ({forensicReport.blocked} Blocked, {forensicReport.suspicious} Suspicious, {forensicReport.allowed} Allowed).
             </div>
-            <button onClick={() => setForensicReport(null)} className="text-slate-400 hover:text-white">Dismiss</button>
+            <button onClick={() => setForensicReport(null)} className="text-[#8B98A5] hover:text-[#E6EDF3]">Dismiss</button>
           </div>
         )}
 
@@ -168,7 +190,8 @@ export const App: React.FC = () => {
           queries={queries}
           onSelectDecision={(item) => setSelectedDecision(item)}
         />
-      </main>
+
+      </div>
 
       {/* Domain Evidence Inspector Modal */}
       <EvidenceModal 
