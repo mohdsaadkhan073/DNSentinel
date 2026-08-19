@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ wsConnected, onOpenUpload, onRun
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white tracking-tight">ELITECORE</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight">DNSENTINEL</h1>
             <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30">SIH1524</span>
           </div>
           <p className="text-xs text-slate-400">DNS Threat Detection & Telemetry Platform Prototype</p>

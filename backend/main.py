@@ -14,9 +14,9 @@ from passive.pcap_parser import PCAPParser
 from passive.batch_analyzer import BatchAnalyzer
 
 app = FastAPI(
-    title="EliteCore DNS Threat Detection Telemetry API",
+    title="DNSentinel Threat Detection Telemetry API",
     version="2.0.0",
-    description="FastAPI REST & WebSocket Backend for SIH1524"
+    description="FastAPI REST & WebSocket Backend for SIH1524 — DNSentinel Platform"
 )
 
 # CORS configuration for React Dashboard
@@ -47,13 +47,13 @@ batch_analyzer = BatchAnalyzer(orchestrator=orchestrator)
 @app.on_event("startup")
 async def startup_event():
     await db_manager.init_db()
-    print("[Backend] EliteCore FastAPI Telemetry Server initialized successfully.")
+    print("[Backend] DNSentinel FastAPI Telemetry Server initialized successfully.")
 
 @app.get("/")
 def read_root():
     return {
         "status": "online",
-        "system": "EliteCore SIH1524 DNS Security Platform",
+        "system": "DNSentinel SIH1524 DNS Security Platform",
         "version": "v2.0 Master Spec"
     }
 

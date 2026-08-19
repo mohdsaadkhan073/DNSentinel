@@ -25,5 +25,5 @@ WEIGHT_TUNNEL = 0.35
 WEIGHT_BEHAVIOR = 0.25
 
 # Database & File Paths
-SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "elitecore_telemetry.db")
+SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "dnsentinel_telemetry.db")
 ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", "ml/dga_rf_v1.pkl")

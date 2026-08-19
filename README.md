@@ -1,7 +1,7 @@
-# EliteCore — Production-Oriented DNS Threat Detection Platform Prototype
-**Problem ID:** SIH1524 | **Team:** EliteCore (6 Members) | **Version:** v2.0 Master SRS Specification
+# DNSentinel — Production-Oriented DNS Threat Detection Platform Prototype
+**Problem ID:** SIH1524 | **Team:** EliteCore (6 Members) | **Software:** DNSentinel v2.0
 
-EliteCore is an explainable, production-ready DNS threat-analysis and security filtering platform. It combines real-time multi-protocol DNS listeners (UDP Port 53, DoH RFC 8484, DTLS RFC 8094), threat intelligence feeds (STIX 2.1 / TAXII 2.1), machine learning DGA domain classification (Random Forest), behavioral DNS-tunneling detection (60s sliding window), and unified live/forensic network packet analysis (PCAP / Zeek TSV).
+DNSentinel is an explainable, production-ready DNS threat-analysis and security filtering platform. It combines real-time multi-protocol DNS listeners (UDP Port 53, DoH RFC 8484, DTLS RFC 8094), threat intelligence feeds (STIX 2.1 / TAXII 2.1), machine learning DGA domain classification (Random Forest), behavioral DNS-tunneling detection (60s sliding window), and unified live/forensic network packet analysis (PCAP / Zeek TSV).
 
 ---
 
@@ -32,7 +32,7 @@ Client DNS Request (UDP / DoH / DTLS)
       │
       ▼
 ┌───────────────┐
-│  Risk Engine  ├─► Risk Score = Min(100, 1.0*Intel + 0.40*ML + 0.35*Tunnel + 0.25*Behavior)
+│ Risk Engine   ├─► Risk Score = Min(100, 1.0*Intel + 0.40*ML + 0.35*Tunnel + 0.25*Behavior)
 └───────┬───────┘
         │
         ├──► Score >= 70        --> BLOCK (0.0.0.0 Sinkhole IP)
