@@ -4,7 +4,7 @@ import { ShieldAlert, Activity, Wifi, Terminal } from 'lucide-react';
 interface HeaderProps {
   wsConnected: boolean;
   onOpenUpload: () => void;
-  onRunTestQuery: (domain: str) => void;
+  onRunTestQuery: (domain: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ wsConnected, onOpenUpload, onRunTestQuery }) => {

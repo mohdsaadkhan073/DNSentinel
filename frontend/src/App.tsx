@@ -125,7 +125,7 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const runTestQuery = async (domain: str) => {
+  const runTestQuery = async (domain: string) => {
     try {
       const res = await fetch(`http://localhost:8000/api/v1/dns/evaluate?domain=${encodeURIComponent(domain)}`, {
         method: 'POST'

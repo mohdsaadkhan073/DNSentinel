@@ -1,20 +1,20 @@
 import React from 'react';
-import { Eye, ShieldAlert, Cpu, Radio } from 'lucide-react';
+import { Eye, Radio } from 'lucide-react';
 
 export interface SecurityDecisionItem {
-  decision_id: str;
+  decision_id: string;
   query: {
-    domain: str;
-    client_ip: str;
-    protocol: str;
-    qtype?: str;
-    timestamp?: str;
+    domain: string;
+    client_ip: string;
+    protocol: string;
+    qtype?: string;
+    timestamp?: string;
   };
   action: 'ALLOW' | 'BLOCK' | 'SUSPICIOUS';
   composite_risk_score: number;
   intel_result?: {
     matched: boolean;
-    threat_category?: str;
+    threat_category?: string;
     intel_score: number;
   };
   ml_result?: {
@@ -28,8 +28,8 @@ export interface SecurityDecisionItem {
   };
   latency_ms: number;
   cache_hit?: boolean;
-  resolved_ip?: str;
-  rationale: str;
+  resolved_ip?: string;
+  rationale: string;
 }
 
 interface TableProps {

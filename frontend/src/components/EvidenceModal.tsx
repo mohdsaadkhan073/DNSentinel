@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShieldAlert, Cpu, Network, Database, CheckCircle, AlertTriangle } from 'lucide-react';
+import { X, ShieldAlert, Cpu, Network, Database } from 'lucide-react';
 import { SecurityDecisionItem } from './QueryStreamTable';
 
 interface ModalProps {
