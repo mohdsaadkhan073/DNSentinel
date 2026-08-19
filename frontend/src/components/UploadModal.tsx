@@ -63,27 +63,29 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-      <div className="glass-panel w-full max-w-lg overflow-hidden shadow-2xl border border-slate-700">
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-          <h3 className="text-base font-bold text-white font-mono flex items-center gap-2">
-            <UploadCloud className="w-5 h-5 text-cyan-400" />
-            Passive Packet Analysis Uploader
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg">
+      <div className="cyber-card w-full max-w-lg overflow-hidden rounded-3xl border border-[#1F2933] shadow-2xl">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-[#1F2933] flex items-center justify-between bg-[#0B0F14]/90">
+          <h3 className="text-base font-bold text-[#E6EDF3] font-mono flex items-center gap-2.5">
+            <UploadCloud className="w-5 h-5 text-[#00D4FF]" />
+            Passive Network Packet Log Uploader
           </h3>
-          <button onClick={onClose} className="p-1 rounded text-slate-400 hover:text-white">
+          <button onClick={onClose} className="p-2 rounded-xl text-[#8B98A5] hover:text-[#E6EDF3] hover:bg-[#1F2933]">
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Drop Zone */}
         <div className="p-6 space-y-4">
           <div 
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
-            className="border-2 border-dashed border-slate-700 hover:border-cyan-500/50 rounded-xl p-8 text-center bg-slate-900/40 cursor-pointer transition-colors"
+            className="border-2 border-dashed border-[#1F2933] hover:border-[#00D4FF]/60 rounded-2xl p-8 text-center bg-[#0B0F14]/60 cursor-pointer transition-all"
           >
-            <FileText className="w-10 h-10 text-cyan-400 mx-auto mb-3 opacity-80" />
-            <p className="text-sm font-medium text-slate-200">Drag & drop your .pcap or Zeek .log file here</p>
-            <p className="text-xs text-slate-500 mt-1">Supports raw Wireshark PCAP packets and Zeek TSV telemetry</p>
+            <FileText className="w-12 h-12 text-[#00D4FF] mx-auto mb-3 opacity-90" />
+            <p className="text-sm font-bold text-[#E6EDF3]">Drag & drop your .pcap or Zeek .log file here</p>
+            <p className="text-xs text-[#8B98A5] mt-1.5 font-medium">Supports Wireshark packet captures and Zeek TSV telemetry</p>
             <input 
               type="file" 
               accept=".pcap,.pcapng,.log,.tsv" 
@@ -91,29 +93,30 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
               className="hidden" 
               id="file-upload" 
             />
-            <label htmlFor="file-upload" className="mt-4 inline-block px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-400 cursor-pointer border border-slate-700">
+            <label htmlFor="file-upload" className="mt-5 inline-block px-4 py-2 rounded-xl bg-[#111820] hover:bg-[#1F2933] text-xs font-bold text-[#00D4FF] cursor-pointer border border-[#1F2933] transition-all">
               Browse Local Files
             </label>
           </div>
 
           {file && (
-            <div className="p-3 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-between text-xs text-slate-300 font-mono">
-              <span className="truncate">{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <div className="p-3.5 rounded-xl bg-[#0B0F14] border border-[#1F2933] flex items-center justify-between text-xs text-[#E6EDF3] font-mono">
+              <span className="truncate font-bold">{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
+              <CheckCircle2 className="w-4 h-4 text-[#4ADE80] flex-shrink-0" />
             </div>
           )}
         </div>
 
-        <div className="px-6 py-3 bg-slate-900/80 border-t border-slate-800 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-1.5 rounded-lg bg-slate-800 text-xs text-slate-300">
+        {/* Footer */}
+        <div className="px-6 py-4 bg-[#0B0F14] border-t border-[#1F2933] flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-[#1F2933] text-xs font-semibold text-[#8B98A5] hover:text-[#E6EDF3]">
             Cancel
           </button>
           <button 
             disabled={!file || loading}
             onClick={handleUpload}
-            className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-xs font-semibold text-white shadow-lg shadow-cyan-600/20"
+            className="btn-cyan-glow px-5 py-2 text-xs font-bold text-[#0B0F14] rounded-xl disabled:opacity-50"
           >
-            {loading ? 'Processing Packet Log...' : 'Start Forensic Analysis'}
+            {loading ? 'Processing Packets...' : 'Start Forensic Analysis'}
           </button>
         </div>
       </div>
