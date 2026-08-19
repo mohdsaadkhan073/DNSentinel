@@ -58,3 +58,10 @@ frontend/.pnpm-debug.log*
 *.swo
 .DS_Store
 Thumbs.db
+
+# TLS/DTLS Certificates & Private Keys
+certs/
+*.crt
+*.key
+*.pem
+
