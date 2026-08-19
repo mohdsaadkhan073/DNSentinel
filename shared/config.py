@@ -1,0 +1,29 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Network Listener Defaults
+FASTAPI_HOST = os.getenv("FASTAPI_HOST", "0.0.0.0")
+FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", "8000"))
+DNS_UDP_PORT = int(os.getenv("DNS_UDP_PORT", "53"))
+DNS_DOH_PORT = int(os.getenv("DNS_DOH_PORT", "8443"))
+DNS_DTLS_PORT = int(os.getenv("DNS_DTLS_PORT", "853"))
+
+# Upstream Resolver
+UPSTREAM_DNS_PRIMARY = os.getenv("UPSTREAM_DNS_PRIMARY", "8.8.8.8")
+UPSTREAM_DNS_SECONDARY = os.getenv("UPSTREAM_DNS_SECONDARY", "1.1.1.1")
+
+# Security Decision Boundaries
+RISK_THRESHOLD_BLOCK = float(os.getenv("RISK_THRESHOLD_BLOCK", "70.0"))
+RISK_THRESHOLD_SUSPICIOUS = float(os.getenv("RISK_THRESHOLD_SUSPICIOUS", "40.0"))
+
+# Risk Formula Weights
+WEIGHT_THREAT_INTEL = 1.0
+WEIGHT_ML_DGA = 0.40
+WEIGHT_TUNNEL = 0.35
+WEIGHT_BEHAVIOR = 0.25
+
+# Database & File Paths
+SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "elitecore_telemetry.db")
+ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", "ml/dga_rf_v1.pkl")
