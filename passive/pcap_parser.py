@@ -3,11 +3,11 @@ import uuid
 from typing import List
 from shared.schemas import DNSQuery, ProtocolType
 
-# Top-level graceful scapy import for static IDE typecheckers
+# Top-level graceful scapy import with type ignore for VS Code Pylance IDE compatibility
 try:
-    from scapy.all import rdpcap, DNS, DNSQR, IP
+    from scapy.all import rdpcap, DNS, DNSQR, IP  # type: ignore
     HAS_SCAPY = True
-except ImportError:
+except (ImportError, Exception):
     HAS_SCAPY = False
 
 class PCAPParser:

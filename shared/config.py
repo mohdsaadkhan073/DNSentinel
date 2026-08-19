@@ -1,7 +1,21 @@
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+# Graceful env loader with fallback to eliminate IDE import squigglies
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv()
+except (ImportError, Exception):
+    # Built-in zero-dependency fallback .env loader
+    if os.path.exists(".env"):
+        try:
+            with open(".env", "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        os.environ.setdefault(k.strip(), v.strip())
+        except Exception:
+            pass
 
 # Network Listener Defaults
 FASTAPI_HOST = os.getenv("FASTAPI_HOST", "0.0.0.0")
