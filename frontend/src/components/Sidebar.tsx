@@ -1,18 +1,7 @@
-import React from 'react';
-import { 
-  LayoutDashboard, 
-  Search, 
-  Activity, 
-  BarChart3, 
-  Network, 
-  FileCode, 
-  UploadCloud, 
-  RefreshCw, 
-  ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  Sun,
-  Moon
+import React, { useState } from 'react';
+import {
+  ShieldCheck, LayoutDashboard, Activity, BarChart3, UploadCloud,
+  RefreshCw, PanelLeftClose, PanelLeftOpen, Sun, Moon, Search, Network
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,7 +9,7 @@ interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenUpload: () => void;
-  onRunTestQuery: (domain: string) => void;
+  onRunTestQuery: (domain: string, qtype?: string) => void;
   onRefresh: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
@@ -33,157 +22,166 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   onOpenUpload,
-  onRunTestQuery,
   onRefresh,
   isCollapsed,
   setIsCollapsed,
   theme,
   setTheme
 }) => {
-  // Navigation Menu Order: Dashboard -> Domain Inspector (2nd) -> Live DNS -> Threat Analytics -> Source IPs -> PCAP / Zeek
-  const navItems = [
-    { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'DOMAIN_INSPECTOR', label: 'Domain Inspector', icon: Search },
-    { id: 'LIVE_DNS', label: 'Live DNS', icon: Activity },
-    { id: 'ANALYTICS', label: 'Threat Analytics', icon: BarChart3 },
-    { id: 'SOURCE_IPS', label: 'Source IPs', icon: Network },
-    { id: 'PCAP_ZEEK', label: 'PCAP / Zeek', icon: FileCode },
-  ];
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
 
-  const quickTestDomains = [
-    { name: 'google.com', type: 'Clean Domain', action: 'ALLOW' },
-    { name: 'bad-c2.com', type: 'C2 Threat Intel', action: 'BLOCK' },
-    { name: 'cxz98qwe12a.info', type: 'DGA Flagged', action: 'SUSPICIOUS' },
-  ];
+  // Active tab styling based on theme
+  const getActiveTabStyle = (tabName: string) => {
+    const isActive = activeTab === tabName;
+    if (!isActive) {
+      return 'text-emerald-100/70 hover:text-white hover:bg-emerald-950/40';
+    }
+    // Light Mode gets rich filled active tab, Dark Mode gets outlined minimal filling
+    return theme === 'light'
+      ? 'bg-emerald-500/25 text-white border border-emerald-400/40 shadow-sm font-bold'
+      : 'bg-emerald-500/10 text-white border border-emerald-400/80 font-bold';
+  };
 
   return (
-    <aside 
-      className={`sidebar-container flex flex-col justify-between transition-all duration-300 z-40 select-none border-r border-emerald-900/30 ${
-        isCollapsed ? 'w-20' : 'w-64'
-      }`}
-      style={{ backgroundColor: 'var(--bg-sidebar)' }}
+    <aside
+      className={`border-r flex flex-col justify-between shrink-0 transition-all duration-300 ${isCollapsed ? 'w-20 p-3' : 'w-72 p-5'
+        } h-screen sticky top-0 z-40 ${theme === 'light'
+          ? 'bg-[#011711] text-white border-emerald-950'
+          : 'bg-[#04160E] text-slate-100 border-emerald-900/40'
+        }`}
     >
-      {/* Top Brand Header */}
-      <div>
-        <div className="p-4 flex items-center justify-between border-b border-emerald-900/30">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-              <ShieldCheck className="w-6 h-6 animate-pulse" />
+
+      {/* Top Section: Brand Header & Navigation Links */}
+      <div className="space-y-6">
+
+        {/* Brand Header: Logo box transforms to collapse/expand toggle on hover */}
+        <div
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          onMouseEnter={() => setIsLogoHovered(true)}
+          onMouseLeave={() => setIsLogoHovered(false)}
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} pb-4 border-b ${theme === 'light' ? 'border-emerald-900/60' : 'border-emerald-900/40'
+            } cursor-pointer group`}
+          title={isCollapsed ? "Click to Expand Sidebar" : "Click to Collapse Sidebar"}
+        >
+          <div className="flex items-center gap-3">
+            {/* Logo Icon that seamlessly switches to Toggle Icon on hover */}
+            <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-800/60 text-emerald-400 shrink-0">
+              {isLogoHovered ? (
+                isCollapsed ? <PanelLeftOpen className="w-5 h-5 text-white" /> : <PanelLeftClose className="w-5 h-5 text-white" />
+              ) : (
+                <ShieldCheck className="w-5 h-5 text-white" />
+              )}
             </div>
+
             {!isCollapsed && (
-              <div className="flex flex-col">
-                <h1 className="text-base font-black tracking-wider text-white font-mono flex items-center gap-1.5">
-                  DNSentinel
-                </h1>
-                <span className="text-[10px] text-emerald-400 font-mono tracking-widest uppercase font-semibold">
-                  Threat Engine 2.0
-                </span>
+              <div className="animate-fade-in-up">
+                <h1 className="text-lg font-extrabold tracking-wide text-white font-mono">DNSentinel</h1>
+                <p className="text-[10px] text-emerald-200/70 font-medium">Threat Detection Engine</p>
               </div>
             )}
           </div>
-
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/30 transition-colors"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
         </div>
 
-        {/* Primary Navigation Menu */}
-        <nav className="p-3 space-y-1.5 font-mono text-xs">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+        {/* Exact 6 Navigation Tabs */}
+        <nav className="space-y-1 font-mono text-xs">
+          {/* 1. Dashboard */}
+          <button
+            onClick={() => setActiveTab('DASHBOARD')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('DASHBOARD')}`}
+            title="Dashboard"
+          >
+            <LayoutDashboard className="w-4 h-4 text-emerald-300 shrink-0" />
+            {!isCollapsed && <span>Dashboard</span>}
+          </button>
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 font-semibold ${
-                  isActive
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-emerald-950/60'
-                }`}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-emerald-400/80'}`} />
-                {!isCollapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+          {/* 2. Live DNS */}
+          <button
+            onClick={() => setActiveTab('LIVE_DNS')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('LIVE_DNS')}`}
+            title="Live DNS"
+          >
+            <Activity className="w-4 h-4 text-emerald-300 shrink-0" />
+            {!isCollapsed && <span>Live DNS</span>}
+          </button>
+
+          {/* 3. Threat Analytics */}
+          <button
+            onClick={() => setActiveTab('ANALYTICS')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('ANALYTICS')}`}
+            title="Threat Analytics"
+          >
+            <BarChart3 className="w-4 h-4 text-amber-300 shrink-0" />
+            {!isCollapsed && <span>Threat Analytics</span>}
+          </button>
+
+          {/* 4. Domain Inspector */}
+          <button
+            onClick={() => setActiveTab('DOMAIN_INSPECTOR')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('DOMAIN_INSPECTOR')}`}
+            title="Domain Inspector"
+          >
+            <Search className="w-4 h-4 text-cyan-300 shrink-0" />
+            {!isCollapsed && <span>Domain Inspector</span>}
+          </button>
+
+          {/* 5. Source IPs */}
+          <button
+            onClick={() => setActiveTab('SOURCE_IPS')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('SOURCE_IPS')}`}
+            title="Source IPs"
+          >
+            <Network className="w-4 h-4 text-violet-300 shrink-0" />
+            {!isCollapsed && <span>Source IPs</span>}
+          </button>
+
+          {/* 6. PCAP / Zeek */}
+          <button
+            onClick={() => {
+              setActiveTab('PCAP_ZEEK');
+              onOpenUpload();
+            }}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('PCAP_ZEEK')}`}
+            title="PCAP / Zeek"
+          >
+            <UploadCloud className="w-4 h-4 text-emerald-300 shrink-0" />
+            {!isCollapsed && <span>PCAP / Zeek</span>}
+          </button>
         </nav>
 
-        {/* Quick Threat Evaluation Drawer (Expanded Only) */}
-        {!isCollapsed && (
-          <div className="px-3 py-4 mx-3 my-2 rounded-xl bg-emerald-950/40 border border-emerald-900/40 space-y-2.5 font-mono">
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
-              Simulate Live Evaluation
-            </span>
-            <div className="space-y-1.5">
-              {quickTestDomains.map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => onRunTestQuery(item.name)}
-                  className="w-full text-left p-2 rounded-lg bg-emerald-900/20 hover:bg-emerald-900/50 border border-emerald-900/30 transition-all flex items-center justify-between group"
-                >
-                  <div className="truncate pr-2">
-                    <span className="text-[11px] font-bold text-white block group-hover:text-emerald-300 transition-colors truncate">
-                      {item.name}
-                    </span>
-                    <span className="text-[9px] text-slate-400 block">{item.type}</span>
-                  </div>
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
-                    item.action === 'BLOCK' ? 'bg-rose-500/20 text-rose-300' :
-                    item.action === 'SUSPICIOUS' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
-                  }`}>
-                    {item.action}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Sidebar Footer Actions */}
-      <div className="p-3 border-t border-emerald-900/30 space-y-2 font-mono text-xs">
-        
-        {/* Upload Passive Telemetry Batch CTA */}
+      {/* Bottom Section: Theme Switcher & WebSocket Status Pill */}
+      <div className={`pt-4 border-t ${theme === 'light' ? 'border-emerald-900/60' : 'border-emerald-900/40'} space-y-2 font-mono`}>
+
+        {/* Theme Toggle Button */}
         <button
-          onClick={onOpenUpload}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl btn-emerald-primary text-xs font-bold transition-all shadow-md ${
-            isCollapsed ? 'p-2.5' : ''
-          }`}
-          title="Upload PCAP or Zeek Log Batch"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className={`w-full py-2 ${isCollapsed ? 'px-2 justify-center' : 'px-3 justify-between'} rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/60 flex items-center text-xs text-white transition-all`}
+          title={theme === 'dark' ? "Switch to Light Emerald Theme" : "Switch to Dark Emerald Command Theme"}
         >
-          <UploadCloud className="w-4 h-4 shrink-0" />
-          {!isCollapsed && <span>Upload Batch</span>}
+          <div className="flex items-center gap-2">
+            {theme === 'dark' ? <Moon className="w-4 h-4 text-amber-300" /> : <Sun className="w-4 h-4 text-amber-400" />}
+            {!isCollapsed && <span>{theme === 'dark' ? 'Dark Command' : 'Light Enterprise'}</span>}
+          </div>
+          {!isCollapsed && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-900 text-emerald-200">TOGGLE</span>}
         </button>
 
-        {/* Theme Toggle & Live WebSocket Status */}
-        {!isCollapsed ? (
-          <div className="pt-2 flex items-center justify-between text-[11px]">
+        {/* WebSocket Status Pill */}
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-3'} py-2 rounded-xl bg-emerald-950 border border-emerald-800/80 text-xs text-white`}>
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${wsConnected ? 'bg-emerald-400' : 'bg-rose-500'}`}></span>
+            {!isCollapsed && <span className="font-bold">{wsConnected ? 'WEBSOCKET LIVE' : 'REST POLLING'}</span>}
+          </div>
+          {!isCollapsed && (
             <button
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-900/40 text-slate-300 hover:text-white transition-colors"
+              onClick={onRefresh}
+              className="p-1 rounded text-emerald-300 hover:text-white transition-colors"
+              title="Refresh Database Stats"
             >
-              {theme === 'light' ? <Moon className="w-3.5 h-3.5 text-amber-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
-              <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
-
-            <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-              <span className="text-[10px] text-slate-400 font-bold">{wsConnected ? 'LIVE' : 'OFFLINE'}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex justify-center pt-1">
-            <span className={`w-2.5 h-2.5 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} title={wsConnected ? 'WebSocket Telemetry Live' : 'Offline'}></span>
-          </div>
-        )}
-
+          )}
+        </div>
       </div>
 
     </aside>
