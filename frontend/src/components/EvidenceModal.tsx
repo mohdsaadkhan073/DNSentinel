@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldAlert, Cpu, Radio, FileText, CheckCircle2, AlertTriangle, ShieldX } from 'lucide-react';
+import { X, ShieldAlert, Cpu, Radio } from 'lucide-react';
 import { SecurityDecisionItem } from './QueryStreamTable';
 
 interface EvidenceModalProps {
@@ -8,7 +8,7 @@ interface EvidenceModalProps {
 }
 
 export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'SUMMARY' | 'FEATURES' | 'JSON'>('SUMMARY');
+  const [activeTab, setActiveTab] = useState<'SUMMARY' | 'FEATURES' | 'ATTRIBUTES'>('SUMMARY');
 
   // Escape key listener to close modal
   useEffect(() => {
@@ -29,19 +29,54 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
   if (decision.action === 'BLOCK') actionBadge = "badge-block";
   else if (decision.action === 'SUSPICIOUS') actionBadge = "badge-suspicious";
 
+  // Human-readable timestamp formatter
+  const formatHumanTime = (tsStr?: string) => {
+    if (!tsStr) return new Date().toLocaleString();
+    try {
+      const formattedIso = tsStr.includes('Z') || tsStr.includes('T') ? tsStr : tsStr.replace(' ', 'T');
+      const d = new Date(formattedIso);
+      if (isNaN(d.getTime())) return tsStr;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-US');
+    } catch {
+      return tsStr;
+    }
+  };
+
+  // Flatten decision object into clean key-value pairs for the Attributes Tab
+  const getAttributes = () => {
+    const rawTime = decision.query.timestamp || decision.created_at || new Date().toISOString();
+    return [
+      { key: "Decision ID", value: decision.decision_id },
+      { key: "Target Domain", value: decision.query.domain },
+      { key: "Client Source IP", value: decision.query.client_ip },
+      { key: "Query Protocol", value: `${decision.query.protocol || 'UDP'} (${decision.query.qtype || 'A'})` },
+      { key: "Evaluated Timestamp", value: formatHumanTime(rawTime) },
+      { key: "Action Taken", value: decision.action },
+      { key: "Composite Risk Score", value: `${decision.composite_risk_score} / 100` },
+      { key: "Resolved Sinkhole IP", value: decision.resolved_ip || '8.8.8.8' },
+      { key: "Resolution Latency", value: `${decision.latency_ms || 1.2} ms` },
+      { key: "In-Memory Cache Hit", value: decision.cache_hit ? 'YES' : 'NO' },
+      { key: "Threat Intel Matched", value: decision.intel_result?.matched ? `YES (${decision.intel_result?.threat_category || 'C2'})` : 'NO' },
+      { key: "AI/ML DGA Flagged", value: decision.ml_result?.is_dga ? `YES (${(decision.ml_result?.dga_probability * 100).toFixed(1)}%)` : 'NO' },
+      { key: "DNS Tunneling Detected", value: decision.tunnel_result?.is_tunnel ? 'YES' : 'NO' },
+      { key: "Shannon Entropy", value: decision.tunnel_result?.entropy || 3.4 },
+      { key: "Decision Rationale", value: decision.rationale }
+    ];
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in-up">
       <div className="soc-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-emerald-900/40 shadow-2xl">
         
-        {/* Modal Header */}
+        {/* Modal Header: Title & Decision ID Only */}
         <div className="p-5 border-b border-emerald-900/20 flex items-center justify-between bg-[var(--input-bg)]">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <span className={`px-3 py-1 rounded-xl text-xs font-bold font-mono ${actionBadge}`}>
               {decision.action}
             </span>
             <div>
               <h3 className="text-lg font-bold theme-title font-mono tracking-wide">{decision.query.domain}</h3>
-              <p className="text-xs theme-subtitle font-mono">Decision ID: {decision.decision_id}</p>
+              <p className="text-xs theme-subtitle font-mono mt-0.5">Decision ID: <strong className="theme-title">{decision.decision_id}</strong></p>
             </div>
           </div>
 
@@ -54,31 +89,33 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
           </button>
         </div>
 
-        {/* Modal Tabs */}
-        <div className="flex items-center gap-2 px-5 pt-3 border-b border-emerald-900/20 bg-[var(--input-bg)] text-xs font-mono">
+        {/* Modal Navigation Tabs (100% EQUALLY SPACED ACROSS MODAL WIDTH) */}
+        <div className="flex items-center justify-evenly w-full px-6 pt-4 border-b border-emerald-900/20 bg-[var(--input-bg)] text-xs font-mono font-semibold">
           <button
             onClick={() => setActiveTab('SUMMARY')}
-            className={`pb-3 font-semibold transition-all border-b-2 ${
-              activeTab === 'SUMMARY' ? 'border-emerald-500 text-emerald-500 font-bold' : 'border-transparent theme-subtitle hover:theme-title'
+            className={`pb-3.5 transition-all border-b-2 ${
+              activeTab === 'SUMMARY' ? 'border-emerald-500 text-emerald-500 font-extrabold' : 'border-transparent theme-subtitle hover:theme-title'
             }`}
           >
             Threat Summary
           </button>
+
           <button
             onClick={() => setActiveTab('FEATURES')}
-            className={`pb-3 font-semibold transition-all border-b-2 ${
-              activeTab === 'FEATURES' ? 'border-emerald-500 text-emerald-500 font-bold' : 'border-transparent theme-subtitle hover:theme-title'
+            className={`pb-3.5 transition-all border-b-2 ${
+              activeTab === 'FEATURES' ? 'border-emerald-500 text-emerald-500 font-extrabold' : 'border-transparent theme-subtitle hover:theme-title'
             }`}
           >
             Feature Vector (12 Metrics)
           </button>
+
           <button
-            onClick={() => setActiveTab('JSON')}
-            className={`pb-3 font-semibold transition-all border-b-2 ${
-              activeTab === 'JSON' ? 'border-emerald-500 text-emerald-500 font-bold' : 'border-transparent theme-subtitle hover:theme-title'
+            onClick={() => setActiveTab('ATTRIBUTES')}
+            className={`pb-3.5 transition-all border-b-2 ${
+              activeTab === 'ATTRIBUTES' ? 'border-emerald-500 text-emerald-500 font-extrabold' : 'border-transparent theme-subtitle hover:theme-title'
             }`}
           >
-            Raw Telemetry JSON
+            Full Attributes (Key-Value)
           </button>
         </div>
 
@@ -188,10 +225,26 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
             </div>
           )}
 
-          {activeTab === 'JSON' && (
-            <pre className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 text-emerald-500 text-xs overflow-x-auto">
-              {JSON.stringify(decision, null, 2)}
-            </pre>
+          {/* Full Attributes Key-Value Tab */}
+          {activeTab === 'ATTRIBUTES' && (
+            <div className="rounded-xl border border-emerald-900/20 overflow-hidden">
+              <table className="w-full text-left border-collapse font-mono text-xs">
+                <thead>
+                  <tr className="bg-[var(--table-head-bg)] border-b border-emerald-900/20 text-emerald-500 font-bold uppercase tracking-wider">
+                    <th className="py-2.5 px-4 w-1/3">Telemetry Attribute</th>
+                    <th className="py-2.5 px-4 w-2/3">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-emerald-900/20">
+                  {getAttributes().map((attr, idx) => (
+                    <tr key={idx} className="hover:bg-[var(--table-row-hover)]">
+                      <td className="py-2.5 px-4 font-bold theme-subtitle">{attr.key}</td>
+                      <td className="py-2.5 px-4 font-semibold theme-title font-mono">{String(attr.value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

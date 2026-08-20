@@ -194,7 +194,7 @@ export const App: React.FC = () => {
       {/* Main Right Area: Top Header + Padded Content Workspace */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         
-        {/* Flush Top Bar Header (Zero Margins, Flush to Top and Sidebar) */}
+        {/* Flush Top Bar Header */}
         <Header
           wsConnected={wsConnected}
           theme={theme}
@@ -239,6 +239,7 @@ export const App: React.FC = () => {
               queries={queries}
               onSelectDecision={(decision) => setSelectedDecision(decision)}
               externalSearch={globalSearch}
+              theme={theme}
             />
           )}
         </main>
