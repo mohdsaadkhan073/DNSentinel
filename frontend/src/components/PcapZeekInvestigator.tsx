@@ -185,11 +185,11 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
               <div style="font-size: 20px; font-weight: 900; color: #FFFFFF;">${d.query.domain}</div>
             </div>
             <div>
-              <span className="${d.action === 'BLOCK' ? 'badge-block' : 'badge-susp'}" style="font-size: 14px; padding: 6px 14px;">${d.action}</span>
+              <span class="${d.action === 'BLOCK' ? 'badge-block' : 'badge-susp'}" style="font-size: 14px; padding: 6px 14px;">${d.action}</span>
             </div>
           </div>
 
-          <div style="font-size: 12px; color: #CBD5E1; background: #05120C; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981; margin-bottom: 15px;">
+          <div style="font-size: 12px; color: #CBD5E1; background: #05120C; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981; margin-bottom: 15px; line-height: 1.5;">
             <strong>Decision Rationale:</strong> ${d.rationale}
           </div>
 
@@ -221,12 +221,12 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
           <div style="font-size: 12px; font-weight: 700; color: #10B981; margin-bottom: 12px;">COMPLETE ATTRIBUTES & FEATURE VECTOR</div>
           <table style="font-size: 11px; width: 100%;">
             <tbody>
-              <tr><td style="color: #94A3B8; width: 40%;">Client Source IP</td><td style="color: #FFFFFF; font-weight: 700;">${d.query.client_ip}</td></tr>
-              <tr><td style="color: #94A3B8;">Query Protocol</td><td style="color: #FFFFFF; font-weight: 700;">${d.query.protocol || 'UDP'} (${d.query.qtype || 'A'})</td></tr>
-              <tr><td style="color: #94A3B8;">Composite Risk Score</td><td style="color: #F59E0B; font-weight: 700;">${d.composite_risk_score} / 100</td></tr>
-              <tr><td style="color: #94A3B8;">Resolved Sinkhole IP</td><td style="color: #FFFFFF; font-weight: 700;">${d.resolved_ip || '8.8.8.8'}</td></tr>
-              <tr><td style="color: #94A3B8;">Resolution Latency</td><td style="color: #FFFFFF; font-weight: 700;">${d.latency_ms || 1.2} ms</td></tr>
-              <tr><td style="color: #94A3B8;">DNS Tunneling Flagged</td><td style="color: ${d.tunnel_result?.is_tunnel ? '#F43F5E' : '#10B981'}; font-weight: 700;">${d.tunnel_result?.is_tunnel ? 'YES' : 'NO'}</td></tr>
+              <tr><td style="color: #94A3B8; width: 40%; padding: 10px 12px;">Client Source IP</td><td style="color: #FFFFFF; font-weight: 700; padding: 10px 12px;">${d.query.client_ip}</td></tr>
+              <tr><td style="color: #94A3B8; padding: 10px 12px;">Query Protocol</td><td style="color: #FFFFFF; font-weight: 700; padding: 10px 12px;">${d.query.protocol || 'UDP'} (${d.query.qtype || 'A'})</td></tr>
+              <tr><td style="color: #94A3B8; padding: 10px 12px;">Composite Risk Score</td><td style="color: #F59E0B; font-weight: 700; padding: 10px 12px;">${d.composite_risk_score} / 100</td></tr>
+              <tr><td style="color: #94A3B8; padding: 10px 12px;">Resolved Sinkhole IP</td><td style="color: #FFFFFF; font-weight: 700; padding: 10px 12px;">${d.resolved_ip || '8.8.8.8'}</td></tr>
+              <tr><td style="color: #94A3B8; padding: 10px 12px;">Resolution Latency</td><td style="color: #FFFFFF; font-weight: 700; padding: 10px 12px;">${d.latency_ms || 1.2} ms</td></tr>
+              <tr><td style="color: #94A3B8; padding: 10px 12px;">DNS Tunneling Flagged</td><td style="color: ${d.tunnel_result?.is_tunnel ? '#F43F5E' : '#10B981'}; font-weight: 700; padding: 10px 12px;">${d.tunnel_result?.is_tunnel ? 'YES' : 'NO'}</td></tr>
             </tbody>
           </table>
         </div>
@@ -241,7 +241,10 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
         <style>
           @page {
             size: A4;
-            margin: 20mm;
+            margin: 15mm;
+          }
+          * {
+            box-sizing: border-box;
           }
           body {
             font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -249,6 +252,7 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
             color: #F8FAFC;
             margin: 0;
             padding: 20px;
+            line-height: 1.4;
           }
           .header {
             border-bottom: 2px solid #10B981;
@@ -274,7 +278,7 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
             border: 1px solid rgba(16, 185, 129, 0.4);
             border-radius: 12px;
             padding: 18px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
           }
           .grid {
             display: grid;
@@ -303,25 +307,39 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
           .val-amber { color: #F59E0B; }
           .val-cyan { color: #06B6D4; }
           .val-green { color: #10B981; }
+          
+          /* Table Styling with Unclipped Rows & Explicit Padding */
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 12px;
+            margin-bottom: 12px;
             font-size: 11px;
           }
           th {
             background-color: #05120C;
             color: #10B981;
-            padding: 8px 10px;
+            padding: 12px 14px;
             text-align: left;
-            border-bottom: 1px solid rgba(16, 185, 129, 0.4);
+            border-bottom: 2px solid rgba(16, 185, 129, 0.5);
+            vertical-align: middle;
+            line-height: 1.5;
           }
           td {
-            padding: 8px 10px;
-            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+            vertical-align: middle;
+            line-height: 1.5;
+            word-break: break-word;
           }
-          .badge-block { background: rgba(244, 63, 94, 0.2); color: #F43F5E; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
-          .badge-susp { background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+          tr:last-child td {
+            border-bottom: none !important;
+            padding-bottom: 16px;
+          }
+          
+          .badge-block { background: rgba(244, 63, 94, 0.2); color: #F43F5E; padding: 3px 8px; border-radius: 4px; font-weight: 700; display: inline-block; }
+          .badge-susp { background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 3px 8px; border-radius: 4px; font-weight: 700; display: inline-block; }
+          
           .footer {
             margin-top: 30px;
             padding-top: 15px;
@@ -369,8 +387,8 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, on
           </div>
         </div>
 
-        <div class="file-card">
-          <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 10px;">EXECUTIVE FLAGGED TELEMETRY OVERVIEW</div>
+        <div class="file-card" style="padding-bottom: 25px;">
+          <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 12px;">EXECUTIVE FLAGGED TELEMETRY OVERVIEW</div>
           <table>
             <thead>
               <tr>
