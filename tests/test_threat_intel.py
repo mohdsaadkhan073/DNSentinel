@@ -857,6 +857,85 @@ def test_multiple_feeds_one_fails_one_succeeds(test_db_path):
     assert f2_health["error_message"] == "Timeout Connecting"
     assert f2_health["consecutive_failures"] == 1
 
+def test_orchestrator_initialization_and_lookup(test_db_path):
+    from core.orchestrator import Orchestrator
+    from shared.schemas import DNSQuery, ActionDecision
+    
+    # 1. Initialize store & orchestrator
+    store = IOCStore(db_path=test_db_path)
+    orchestrator = Orchestrator(ioc_store=store)
+    
+    # 2. Test malicious domain query (exact match)
+    query_malicious = DNSQuery(query_id="q-malicious", domain="bad-c2.com", client_ip="192.168.1.5")
+    decision = orchestrator.process_query(query_malicious)
+    
+    assert decision.intel_result.matched is True
+    assert decision.action == ActionDecision.BLOCK
+    assert decision.intel_result.threat_category == "Command & Control (C2)"
+    assert decision.intel_result.intel_score == 100.0
+    assert decision.intel_result.source_feed == "demo_seed"
+    
+    # 3. Test clean domain query (no match)
+    query_clean = DNSQuery(query_id="q-clean", domain="google.com", client_ip="192.168.1.5")
+    decision_clean = orchestrator.process_query(query_clean)
+    
+    assert decision_clean.intel_result.matched is False
+    assert decision_clean.action == ActionDecision.ALLOW
+    assert decision_clean.intel_result.intel_score == 0.0
+
+def test_orchestrator_normalization_and_subdomains(test_db_path):
+    from core.orchestrator import Orchestrator
+    from shared.schemas import DNSQuery, ActionDecision
+    
+    store = IOCStore(db_path=test_db_path)
+    orchestrator = Orchestrator(ioc_store=store)
+    
+    # 1. Normalization check: EVIL-tracker.info. with spaces and uppercase
+    query_norm = DNSQuery(query_id="q-norm", domain="  HTTPS://EVIL-TRACKER.INFO.  ", client_ip="192.168.1.5")
+    decision = orchestrator.process_query(query_norm)
+    assert decision.intel_result.matched is True
+    assert decision.action == ActionDecision.BLOCK
+    
+    # 2. Subdomain check: child.botnet-c2-node.xyz
+    query_sub = DNSQuery(query_id="q-sub", domain="child.botnet-c2-node.xyz", client_ip="192.168.1.5")
+    decision_sub = orchestrator.process_query(query_sub)
+    assert decision_sub.intel_result.matched is True
+    assert decision_sub.action == ActionDecision.BLOCK
+
+def test_orchestrator_with_background_worker_active(test_db_path):
+    from core.orchestrator import Orchestrator
+    from shared.schemas import DNSQuery
+    
+    mock_client = MagicMock()
+    mock_client.collection_id = "feed-id"
+    mock_client.poll_and_parse_feed.return_value = (
+        [{"domain": "background-bad.org", "category": "Botnet", "confidence": 95.0, "source": "TAXII: feed-id"}],
+        {"status": "SUCCESS", "count": 1, "latency_ms": 10.0}
+    )
+    
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    worker = BackgroundWorker(aggregator, {"TAXII": mock_client}, interval_seconds=0.1)
+    
+    orchestrator = Orchestrator(ioc_store=store)
+    
+    worker.start()
+    
+    # System lookup paths remain live and functioning during thread update execution
+    query_clean = DNSQuery(query_id="q-1", domain="google.com", client_ip="192.168.1.1")
+    decision_clean = orchestrator.process_query(query_clean)
+    assert decision_clean.intel_result.matched is False
+    
+    time.sleep(0.2)
+    
+    # Verify lookup registers the new parsed domain post-worker update loop
+    query_new = DNSQuery(query_id="q-2", domain="background-bad.org", client_ip="192.168.1.1")
+    decision_new = orchestrator.process_query(query_new)
+    assert decision_new.intel_result.matched is True
+    
+    worker.stop()
+
+
 
 
 

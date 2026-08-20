@@ -21,14 +21,20 @@ class BackgroundWorker:
         
         self._shutdown_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
-        self._lock = threading.Lock()  # Prevent overlapping sync loops
+        
+        # State lock to control start / stop execution safely
+        self._state_lock = threading.Lock()
+        
+        # Sync lock to prevent concurrent overlapping executions of the sync loop
+        self._sync_lock = threading.Lock()
+        
         self._is_running = False
 
     def start(self):
         """
         Starts the daemonized worker thread.
         """
-        with self._lock:
+        with self._state_lock:
             if self._is_running:
                 return
             self._is_running = True
@@ -41,7 +47,7 @@ class BackgroundWorker:
         """
         Gracefully triggers shutdown and joins the worker thread.
         """
-        with self._lock:
+        with self._state_lock:
             if not self._is_running:
                 return
             self._is_running = False
@@ -55,7 +61,8 @@ class BackgroundWorker:
         """
         Check if the worker thread is running.
         """
-        return self._thread is not None and self._thread.is_alive()
+        with self._state_lock:
+            return self._thread is not None and self._thread.is_alive()
 
     def _run_loop(self):
         """
@@ -78,7 +85,7 @@ class BackgroundWorker:
         Ensures execution exceptions on one feed do not affect other feeds.
         Prevent overlapping runs using non-blocking lock acquires.
         """
-        acquired = self._lock.acquire(blocking=False)
+        acquired = self._sync_lock.acquire(blocking=False)
         if not acquired:
             print("[ThreatIntelWorker] Warning: Overlapping feed update skipped.")
             return {}
@@ -138,6 +145,6 @@ class BackgroundWorker:
                     )
                     
         finally:
-            self._lock.release()
+            self._sync_lock.release()
             
         return statuses
