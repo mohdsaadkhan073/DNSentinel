@@ -33,7 +33,11 @@ class MLDgaResult(BaseModel):
     is_dga: bool = False
     dga_probability: float = 0.0  # 0.0 to 1.0
     model_version: str = "v1.0"
-    features: Optional[Dict[str, float]] = None
+    features: Optional[Any] = None
+    domain: Optional[str] = None
+    confidence_score: Optional[float] = None
+    inference_latency_ms: Optional[float] = None
+    feature_names: Optional[List[str]] = None
 
 class TunnelResult(BaseModel):
     is_tunnel: bool = False
