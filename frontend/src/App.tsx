@@ -6,6 +6,7 @@ import { ThreatCharts } from './components/ThreatCharts';
 import { QueryStreamTable, SecurityDecisionItem } from './components/QueryStreamTable';
 import { DomainInspector } from './components/DomainInspector';
 import { ThreatAnalytics } from './components/ThreatAnalytics';
+import { SourceIpAnalytics } from './components/SourceIpAnalytics';
 import { PcapZeekInvestigator } from './components/PcapZeekInvestigator';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
@@ -251,6 +252,15 @@ export const App: React.FC = () => {
               />
             )}
 
+            {/* Dedicated Source IP Analytics Workspace */}
+            {activeTab === 'SOURCE_IPS' && (
+              <SourceIpAnalytics
+                queries={queries}
+                onSelectDecision={(decision) => setSelectedDecision(decision)}
+                theme={theme}
+              />
+            )}
+
             {/* Dedicated PCAP / Zeek Investigation Module */}
             {activeTab === 'PCAP_ZEEK' && (
               <PcapZeekInvestigator
@@ -266,8 +276,8 @@ export const App: React.FC = () => {
               <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
             )}
 
-            {/* Live Stream Table (Displayed on DASHBOARD, LIVE_DNS, SOURCE_IPS) */}
-            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'SOURCE_IPS') && (
+            {/* Live Stream Table (Displayed on DASHBOARD & LIVE_DNS) */}
+            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS') && (
               <QueryStreamTable
                 queries={queries}
                 onSelectDecision={(decision) => setSelectedDecision(decision)}
