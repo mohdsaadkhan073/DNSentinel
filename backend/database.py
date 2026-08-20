@@ -83,3 +83,46 @@ class DatabaseManager:
             return [json.loads(row[0]) for row in rows]
 
         return await asyncio.to_thread(_sync_get)
+
+    async def get_metrics_summary(self) -> Dict[str, Any]:
+        def _sync_metrics():
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    COUNT(*),
+                    SUM(CASE WHEN action = 'BLOCK' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN action = 'SUSPICIOUS' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN action = 'ALLOW' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN cache_hit = 1 THEN 1 ELSE 0 END),
+                    AVG(latency_ms),
+                    SUM(CASE WHEN is_dga = 1 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN is_tunnel = 1 THEN 1 ELSE 0 END)
+                FROM query_logs
+            """)
+            row = cursor.fetchone()
+            conn.close()
+            total = row[0] or 0
+            if total == 0:
+                return {
+                    "total_queries": 0,
+                    "blocked_queries": 0,
+                    "suspicious_queries": 0,
+                    "allowed_queries": 0,
+                    "cache_hits": 0,
+                    "avg_latency_ms": 0.0,
+                    "dga_detected_count": 0,
+                    "tunnels_detected_count": 0
+                }
+            return {
+                "total_queries": total,
+                "blocked_queries": row[1] or 0,
+                "suspicious_queries": row[2] or 0,
+                "allowed_queries": row[3] or 0,
+                "cache_hits": row[4] or 0,
+                "avg_latency_ms": float(round(row[5] or 0.0, 2)),
+                "dga_detected_count": row[6] or 0,
+                "tunnels_detected_count": row[7] or 0
+            }
+
+        return await asyncio.to_thread(_sync_metrics)

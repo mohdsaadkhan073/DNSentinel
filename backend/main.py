@@ -64,22 +64,14 @@ app.add_middleware(
 def read_root():
     return {
         "status": "online",
-        "system": "DNSentinel SIH1524 DNS Security Platform",
+        "system": "DNSentinel Threat Detection Platform (Running & Operational)",
         "version": "v2.0 Master Spec"
     }
 
 @app.get("/api/v1/metrics/summary")
-def get_metrics_summary():
-    return MetricsSummary(
-        total_queries=1240,
-        blocked_queries=182,
-        suspicious_queries=45,
-        allowed_queries=1013,
-        cache_hits=680,
-        avg_latency_ms=12.4,
-        dga_detected_count=78,
-        tunnels_detected_count=23
-    )
+async def get_metrics_summary():
+    metrics_dict = await db_manager.get_metrics_summary()
+    return MetricsSummary(**metrics_dict)
 
 @app.get("/api/v1/dns/queries")
 async def get_recent_queries(limit: int = 50):
@@ -114,6 +106,9 @@ async def upload_pcap_file(file: UploadFile = File(...)):
     contents = await file.read()
     parsed_queries = PCAPParser.parse_pcap(contents)
     report = batch_analyzer.analyze_batch(parsed_queries)
+    for d in report["decisions"]:
+        await db_manager.log_decision(d)
+        await ws_manager.broadcast(d.model_dump(mode="json"))
     return {
         "filename": file.filename,
         "total_queries_analyzed": report["total_queries"],
@@ -130,6 +125,9 @@ async def upload_zeek_file(file: UploadFile = File(...)):
     text = contents.decode("utf-8", errors="ignore")
     parsed_queries = ZeekParser.parse_zeek_tsv(text)
     report = batch_analyzer.analyze_batch(parsed_queries)
+    for d in report["decisions"]:
+        await db_manager.log_decision(d)
+        await ws_manager.broadcast(d.model_dump(mode="json"))
     return {
         "filename": file.filename,
         "total_queries_analyzed": report["total_queries"],

@@ -52,9 +52,12 @@ class RiskEngine:
                 rationale = f"Blocked: Direct Threat Intel match ({intel.threat_category or 'Malicious Indicator'})."
             else:
                 rationale = f"Blocked: High composite risk score ({composite_score:.1f} >= {RISK_THRESHOLD_BLOCK})."
-        elif composite_score >= RISK_THRESHOLD_SUSPICIOUS:
+        elif tunnel.is_tunnel or composite_score >= RISK_THRESHOLD_SUSPICIOUS:
             decision = ActionDecision.SUSPICIOUS
-            rationale = f"Suspicious: Moderate risk score ({composite_score:.1f}). Flagged for monitoring."
+            if tunnel.is_tunnel:
+                rationale = f"Suspicious: DNS Tunneling activity flagged ({tunnel.reason or 'Behavioral anomaly'})."
+            else:
+                rationale = f"Suspicious: Moderate risk score ({composite_score:.1f}). Flagged for monitoring."
         else:
             decision = ActionDecision.ALLOW
             rationale = f"Allowed: Low risk score ({composite_score:.1f}). Domain clean."
