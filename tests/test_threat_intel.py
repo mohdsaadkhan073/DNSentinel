@@ -324,4 +324,136 @@ def test_stix_parser_duplicate_indicators():
     assert iocs[0]["domain"] == "dup-domain.com"
     assert iocs[0]["confidence"] == 92.0
 
+from threat_intel.aggregator import ThreatAggregator, resolve_category
+
+def test_category_priority_resolution():
+    # command and control priority over malware/phishing
+    assert resolve_category("Phishing", "Command & Control (C2)") == "Command & Control (C2)"
+    assert resolve_category("Command & Control (C2)", "Phishing") == "Command & Control (C2)"
+    assert resolve_category("Botnet", "Malware Host") == "Botnet"
+    assert resolve_category("Malware Host", "Phishing") == "Malware Host"
+    assert resolve_category("Phishing", "Malicious Domain") == "Phishing"
+
+def test_aggregator_multi_source_and_attribution(test_db_path):
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    
+    # Setup mock feed inputs with conflicting details/categories/domains
+    feeds_data = {
+        "AlienVault OTX": [
+            {
+                "domain": "EVIL-TARGET.com",
+                "category": "Phishing",
+                "confidence": 70.0,
+                "details": "Phishing credential theft landing page"
+            },
+            {
+                "domain": "phish-bank.org",
+                "category": "Phishing",
+                "confidence": 85.0,
+                "details": "Bank phishing page"
+            }
+        ],
+        "Abuse.ch URLhaus": [
+            {
+                "domain": "evil-target.com.",
+                "category": "Command & Control (C2)",
+                "confidence": 95.0,
+                "details": "C2 Server node for Trojan malware"
+            },
+            {
+                "domain": "malware-download.xyz",
+                "category": "Malware Host",
+                "confidence": 60.0,
+                "details": "Payload downloader"
+            }
+        ]
+    }
+    
+    aggregated = aggregator.aggregate_feeds(feeds_data)
+    
+    # 3 unique domains normalized and aggregated
+    assert len(aggregated) == 3
+    
+    # Verify details for evil-target.com (should resolve to C2 server, max confidence 95, attribution AlienVault OTX, Abuse.ch URLhaus)
+    evil_target = next(item for item in aggregated if item[0] == "evil-target.com")
+    assert evil_target[1] == "Command & Control (C2)" # Priority resolved from Phishing -> C2
+    assert evil_target[2] == 95.0                     # Max confidence 95.0
+    assert evil_target[3] == "Abuse.ch URLhaus, AlienVault OTX"  # Source attribution joined alphabetically
+    assert evil_target[4] == "C2 Server node for Trojan malware" # Higher-confidence description kept
+
+def test_aggregator_empty_and_malformed_feeds(test_db_path):
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    
+    feeds_data = {
+        "Empty Feed": [],
+        "Malformed Feed": [
+            {"domain": "", "category": "Malware Host", "confidence": 90.0},
+            {"domain": "good-domain.com", "category": "Phishing", "confidence": None} # None evaluates to 80.0 fallback
+        ]
+    }
+    
+    aggregated = aggregator.aggregate_feeds(feeds_data)
+    
+    # "good-domain.com" should be aggregated, malformed/empty skipped
+    assert len(aggregated) == 1
+    assert aggregated[0][0] == "good-domain.com"
+    assert aggregated[0][2] == 80.0 # Fallback confidence
+
+def test_aggregator_store_sync_and_health(test_db_path):
+    # Initialize with clean db (no seeding, we populate via aggregator)
+    db = ThreatDB(test_db_path)
+    db.add_iocs_batch([("initial.com", "Malware Host", 90.0, "real", "real IOC")])
+    store = IOCStore(db_path=test_db_path)
+    
+    assert store.total_iocs() == 1
+    
+    aggregator = ThreatAggregator(store)
+    
+    # Aggregated indicators to write
+    aggregated_iocs = [
+        ("evil-node.net", "Botnet", 92.5, "Feed A", "C2 Node"),
+        ("phish-target.com", "Phishing", 88.0, "Feed B", "Fake portal")
+    ]
+    
+    # Health status metadata
+    feed_statuses = {
+        "Feed A": {
+            "status": "SUCCESS",
+            "count": 1,
+            "error_message": None,
+            "latency_ms": 120.4
+        },
+        "Feed B": {
+            "status": "FAILED",
+            "count": 0,
+            "error_message": "HTTP 500 Server Error",
+            "latency_ms": 3200.0
+        }
+    }
+    
+    # Trigger update
+    aggregator.update_store_and_db(aggregated_iocs, feed_statuses)
+    
+    # 1. Verify in-memory store is synchronized (now has 3 items: initial.com + 2 new ones)
+    assert store.total_iocs() == 3
+    assert store.lookup("evil-node.net").matched is True
+    assert store.lookup("phish-target.com").matched is True
+    
+    # 2. Verify health statistics are stored
+    health = db.get_feed_health()
+    assert len(health) == 2
+    
+    feed_a_health = next(h for h in health if h["feed_name"] == "Feed A")
+    assert feed_a_health["status"] == "SUCCESS"
+    assert feed_a_health["indicator_count"] == 1
+    assert feed_a_health["latency_ms"] == 120.4
+    
+    feed_b_health = next(h for h in health if h["feed_name"] == "Feed B")
+    assert feed_b_health["status"] == "FAILED"
+    assert feed_b_health["error_message"] == "HTTP 500 Server Error"
+    assert feed_b_health["latency_ms"] == 3200.0
+
+
 
