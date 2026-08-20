@@ -9,9 +9,16 @@ import { UploadModal } from './components/UploadModal';
 export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('DASHBOARD');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
+
+  // Sync theme with body data-theme attribute
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const [metrics, setMetrics] = useState({
     total_queries: 1240,
@@ -164,9 +171,9 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 max-w-[1800px] mx-auto flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen flex flex-col lg:flex-row font-sans">
       
-      {/* Left Sidebar Navigation */}
+      {/* Left Sidebar Section (Dark Emerald / Light Forest Sidebar) */}
       <Sidebar
         wsConnected={wsConnected}
         activeTab={activeTab}
@@ -174,32 +181,36 @@ export const App: React.FC = () => {
         onOpenUpload={() => setIsUploadOpen(true)}
         onRunTestQuery={handleRunTestQuery}
         onRefresh={refreshData}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       {/* Main Right Content Area */}
-      <main className="flex-1 space-y-6 min-w-0">
+      <main className="flex-1 p-6 space-y-6 min-w-0">
         
-        {/* Forensic Report Banner */}
+        {/* Forensic Report Notification Banner */}
         {forensicReport && (
-          <div className="soc-card rounded-2xl p-4 border-l-4 border-l-indigo-500 flex items-center justify-between font-mono text-xs">
+          <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-fade-in-up">
             <div className="flex items-center gap-3">
-              <span className="px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold">BATCH PROCESSED</span>
-              <span className="text-slate-200 font-semibold">{forensicReport.filename}</span>
-              <span className="text-slate-400">({forensicReport.total_queries_analyzed} queries evaluated)</span>
+              <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">BATCH PROCESSED</span>
+              <span className="font-semibold">{forensicReport.filename}</span>
+              <span className="opacity-75">({forensicReport.total_queries_analyzed} queries evaluated)</span>
             </div>
             <button 
               onClick={() => setForensicReport(null)}
-              className="text-slate-400 hover:text-slate-200 text-xs font-bold underline"
+              className="text-xs font-bold underline opacity-75 hover:opacity-100"
             >
               Dismiss
             </button>
           </div>
         )}
 
-        {/* Top KPI Metric Cards */}
+        {/* 5 Core Metric Cards */}
         <MetricCards summary={metrics} />
 
-        {/* Donut & Area Charts */}
+        {/* Donut & Area Threat Charts */}
         {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
           <ThreatCharts summary={metrics} />
         )}

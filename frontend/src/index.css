@@ -8,99 +8,202 @@
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* ================= DARK EMERALD COMMAND THEME ================= */
+[data-theme="dark"], body:not([data-theme="light"]) {
+  --bg-main: #030C08;
+  --bg-sidebar: #04160E;
+  --card-bg: rgba(6, 24, 16, 0.85);
+  --card-border: rgba(16, 185, 129, 0.15);
+  --card-hover-border: rgba(16, 185, 129, 0.45);
+  --card-hover-shadow: rgba(16, 185, 129, 0.2);
+  --text-primary: #F8FAFC;
+  --text-title: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --btn-secondary-bg: rgba(10, 35, 24, 0.85);
+  --input-bg: rgba(4, 22, 14, 0.8);
+  --table-head-bg: rgba(4, 22, 14, 0.85);
+  --table-row-hover: rgba(10, 35, 24, 0.6);
+  --donut-ring-bg: #161B22;
+}
+
+/* ================= LIGHT EMERALD ENTERPRISE THEME ================= */
+[data-theme="light"] {
+  --bg-main: #F0F4F2;
+  --bg-sidebar: #011711; /* Ultra-deep dark emerald forest */
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(4, 120, 87, 0.18);
+  --card-hover-border: rgba(16, 185, 129, 0.5);
+  --card-hover-shadow: rgba(4, 120, 87, 0.18);
+  --text-primary: #0F172A;
+  --text-title: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --btn-secondary-bg: #E2E8F0;
+  --input-bg: #FFFFFF;
+  --table-head-bg: #F1F5F9;
+  --table-row-hover: #ECFDF5;
+  --donut-ring-bg: #E2E8F0;
+}
+
 body {
-  background-color: #07090E;
-  color: #E2E8F0;
-  background-image: 
-    radial-gradient(circle at 30% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
-    radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 10% 80%, rgba(244, 63, 94, 0.05) 0%, transparent 50%);
-  background-attachment: fixed;
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Premium Glassmorphism Cards & Sections */
+/* Dynamic Contrast Classes for Light vs Dark */
+.theme-title {
+  color: var(--text-title) !important;
+}
+
+.theme-subtitle {
+  color: var(--text-secondary) !important;
+}
+
+.theme-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Glassmorphism Surfaces */
 .soc-card {
-  background: rgba(15, 23, 42, 0.65) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-  border-radius: 1.25rem !important;
+  background: var(--card-bg) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  border-radius: 1rem !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Radiant Glass Glow on Hover */
+/* Radiant Emerald Glass Glow on Hover */
 .soc-card:hover, .soc-card-hover:hover {
-  border-color: rgba(99, 102, 241, 0.45) !important;
-  box-shadow: 0 15px 45px -10px rgba(99, 102, 241, 0.25), inset 0 0 20px rgba(255, 255, 255, 0.04) !important;
-  transform: translateY(-3px);
+  border-color: var(--card-hover-border) !important;
+  box-shadow: 0 12px 40px -10px var(--card-hover-shadow), inset 0 0 20px rgba(16, 185, 129, 0.05) !important;
+  transform: translateY(-2px);
 }
 
-/* Premium Status Badges (Solid, No Blinking) */
+/* Status Badges */
 .badge-allow {
-  background: rgba(16, 185, 129, 0.12);
-  color: #34D399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .badge-block {
-  background: rgba(244, 63, 94, 0.12);
-  color: #F87171;
-  border: 1px solid rgba(244, 63, 94, 0.3);
+  background: rgba(244, 63, 94, 0.15);
+  color: #E11D48;
+  border: 1px solid rgba(244, 63, 94, 0.35);
 }
 
 .badge-suspicious {
-  background: rgba(245, 158, 11, 0.12);
-  color: #FBBF24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
-/* Indigo Primary Button */
-.btn-indigo-primary {
-  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+/* Emerald Primary Action Button */
+.btn-emerald-primary {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: #FFFFFF;
-  font-weight: 600;
-  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.35);
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
   transition: all 0.2s ease;
 }
 
-.btn-indigo-primary:hover {
-  background: linear-gradient(135deg, #818CF8 0%, #6366F1 100%);
-  box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
+.btn-emerald-primary:hover {
+  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
   transform: translateY(-1px);
 }
 
-/* Secondary Button */
 .btn-secondary {
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #CBD5E1;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
   transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background: rgba(51, 65, 85, 0.8);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #F8FAFC;
+  border-color: rgba(16, 185, 129, 0.4);
 }
+
+/* Lightweight Startup Entrance Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Slow, Smooth Live Graph Line Drawing Keyframes (5.0s) */
+@keyframes drawGraphLine {
+  0% {
+    stroke-dashoffset: 1200;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.animate-draw-line {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: drawGraphLine 5.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Donut Scale & Rotate Entrance (3.8s) */
+@keyframes donutEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-180deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-90deg);
+  }
+}
+
+.animate-donut-chart {
+  transform-origin: center;
+  animation: donutEntrance 3.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.12s; }
+.delay-3 { animation-delay: 0.18s; }
 
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #07090E;
+  background: var(--bg-main);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
-  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(16, 185, 129, 0.5);
 }

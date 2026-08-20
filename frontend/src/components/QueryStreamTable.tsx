@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Eye, ShieldX, AlertTriangle, CheckCircle2, Zap } from 'lucide-react';
+import { Search, Eye, ShieldX, AlertTriangle, CheckCircle2, Zap } from 'lucide-react';
 
 export interface SecurityDecisionItem {
   decision_id: string;
@@ -44,16 +44,16 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
   });
 
   return (
-    <div className="soc-card rounded-2xl overflow-hidden mb-6">
+    <div className="soc-card rounded-2xl overflow-hidden mb-6 animate-fade-in-up delay-3">
       
       {/* Table Header & Search/Filter Bar */}
-      <div className="p-5 border-b border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="p-5 border-b border-emerald-900/20 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-100 font-mono tracking-wide flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+          <h2 className="text-lg font-bold theme-title font-mono tracking-wide flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
             LIVE DNS TELEMETRY STREAM
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Real-time threat engine inspection log</p>
+          <p className="text-xs theme-subtitle mt-0.5">Real-time threat engine inspection log</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -65,20 +65,20 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
               placeholder="Search domain or IP..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 text-xs font-mono theme-title placeholder-slate-400 focus:outline-none focus:border-emerald-500"
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs font-mono w-full sm:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1 bg-[var(--input-bg)] p-1 rounded-xl border border-emerald-900/20 text-xs font-mono w-full sm:w-auto overflow-x-auto">
             {['ALL', 'BLOCK', 'SUSPICIOUS', 'ALLOW', 'CACHE'].map((action) => (
               <button
                 key={action}
                 onClick={() => setFilterAction(action)}
                 className={`px-2.5 py-1 rounded-lg transition-all font-semibold ${
                   filterAction === action
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'theme-subtitle hover:text-emerald-500'
                 }`}
               >
                 {action}
@@ -92,7 +92,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-900/50 border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+            <tr className="bg-[var(--table-head-bg)] border-b border-emerald-900/20 text-[11px] font-mono theme-subtitle uppercase tracking-wider">
               <th className="py-3 px-4">Action</th>
               <th className="py-3 px-4">Domain</th>
               <th className="py-3 px-4">Client IP</th>
@@ -104,10 +104,10 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+          <tbody className="divide-y divide-emerald-900/20 font-mono text-xs">
             {filteredQueries.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-500 italic">
+                <td colSpan={8} className="py-8 text-center theme-subtitle italic">
                   No telemetry queries matched your filter.
                 </td>
               </tr>
@@ -126,7 +126,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                 return (
                   <tr 
                     key={item.decision_id || idx}
-                    className="hover:bg-slate-800/40 transition-colors"
+                    className="hover:bg-[var(--table-row-hover)] transition-colors"
                   >
                     {/* Action Badge */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
@@ -137,21 +137,21 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                     </td>
 
                     {/* Domain */}
-                    <td className="py-3.5 px-4 font-semibold text-slate-200">
+                    <td className="py-3.5 px-4 font-semibold theme-title">
                       <div className="max-w-[260px] truncate" title={item.query.domain}>
                         {item.query.domain}
                       </div>
                     </td>
 
                     {/* Client IP */}
-                    <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                    <td className="py-3.5 px-4 theme-subtitle whitespace-nowrap">
                       {item.query.client_ip}
                     </td>
 
                     {/* Risk Score Progress */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                        <div className="w-16 bg-[var(--input-bg)] h-2 rounded-full overflow-hidden border border-emerald-900/20">
                           <div 
                             className={`h-full rounded-full ${
                               item.composite_risk_score >= 70 ? 'bg-rose-500' :
@@ -160,22 +160,22 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                             style={{ width: `${Math.min(100, item.composite_risk_score)}%` }}
                           ></div>
                         </div>
-                        <span className="font-bold text-slate-300">{item.composite_risk_score}</span>
+                        <span className="font-bold theme-title">{item.composite_risk_score}</span>
                       </div>
                     </td>
 
                     {/* Protocol */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded bg-[var(--input-bg)] theme-title text-[10px] font-bold border border-emerald-900/20">
                         {item.query.protocol || 'UDP'} ({item.query.qtype || 'A'})
                       </span>
                     </td>
 
                     {/* Latency & Cache */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-slate-300">
+                      <div className="flex items-center gap-1.5 theme-title font-medium">
                         {item.cache_hit && (
-                          <span className="p-1 rounded bg-violet-500/15 text-violet-300" title="In-Memory Cache Hit">
+                          <span className="p-1 rounded bg-amber-500/15 text-amber-600 dark:text-amber-300" title="In-Memory Cache Hit">
                             <Zap className="w-3 h-3" />
                           </span>
                         )}
@@ -184,8 +184,8 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                     </td>
 
                     {/* Resolved IP */}
-                    <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
-                      <span className={item.resolved_ip === '0.0.0.0' ? 'text-rose-400 font-bold' : ''}>
+                    <td className="py-3.5 px-4 theme-subtitle whitespace-nowrap">
+                      <span className={item.resolved_ip === '0.0.0.0' ? 'text-rose-500 font-bold' : ''}>
                         {item.resolved_ip || '8.8.8.8'}
                       </span>
                     </td>
@@ -194,7 +194,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => onSelectDecision(item)}
-                        className="btn-secondary px-2.5 py-1 rounded-lg text-xs font-semibold hover:border-indigo-500/50 hover:text-indigo-300 inline-flex items-center gap-1"
+                        className="btn-secondary px-2.5 py-1 rounded-lg text-xs font-semibold hover:border-emerald-500 inline-flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Inspect</span>
