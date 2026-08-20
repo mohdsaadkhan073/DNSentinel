@@ -14,7 +14,7 @@ class ThreatDB:
 
     def _init_db(self):
         """
-        Initialize sqlite tables.
+        Initialize sqlite tables. Implements schema migration safely.
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -31,7 +31,7 @@ class ThreatDB:
             )
         """)
         
-        # Create feed_health table
+        # Create feed_health table (with basic fields first)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS feed_health (
                 feed_name TEXT PRIMARY KEY,
@@ -42,8 +42,17 @@ class ThreatDB:
                 latency_ms REAL
             )
         """)
-        
         conn.commit()
+
+        # Database Schema Migration: add advanced health columns if missing
+        try:
+            cursor.execute("SELECT last_attempt FROM feed_health LIMIT 1")
+        except sqlite3.OperationalError:
+            # Columns do not exist, perform alter table
+            cursor.execute("ALTER TABLE feed_health ADD COLUMN last_attempt TIMESTAMP")
+            cursor.execute("ALTER TABLE feed_health ADD COLUMN consecutive_failures INTEGER DEFAULT 0")
+            conn.commit()
+            
         conn.close()
 
     def seed_database_if_empty(self, target_count: int = 50000):
@@ -129,29 +138,58 @@ class ThreatDB:
 
     def add_iocs_batch(self, iocs: List[Tuple[str, str, float, str, str]]):
         """
-        Insert or replace a batch of IOCs.
+        Insert or replace a batch of IOCs. Implements transaction safety with automated rollback.
         iocs: List of tuples (domain, category, confidence, source_feed, details)
         """
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        conn.execute("BEGIN TRANSACTION")
-        cursor.executemany("""
-            INSERT OR REPLACE INTO threat_iocs (domain, category, confidence, source_feed, details)
-            VALUES (?, ?, ?, ?, ?)
-        """, iocs)
-        conn.commit()
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            conn.execute("BEGIN TRANSACTION")
+            cursor.executemany("""
+                INSERT OR REPLACE INTO threat_iocs (domain, category, confidence, source_feed, details)
+                VALUES (?, ?, ?, ?, ?)
+            """, iocs)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise RuntimeError(f"Database batch update failed: transaction rolled back. Detail: {e}")
+        finally:
+            conn.close()
 
     def update_feed_health(self, feed_name: str, status: str, count: int, error_msg: Optional[str] = None, latency_ms: float = 0.0):
         """
-        Log feed health and synchronization telemetry.
+        Log feed health and synchronization telemetry. Handles consecutive failures and last successful sync tracking.
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        
+        # Retrieve previous consecutive failures and last successful sync
+        cursor.execute("SELECT consecutive_failures, last_sync FROM feed_health WHERE feed_name = ?", (feed_name,))
+        row = cursor.fetchone()
+        
+        prev_failures = 0
+        prev_sync = None
+        if row:
+            prev_failures = row[0] or 0
+            prev_sync = row[1]
+            
+        consecutive_failures = 0
+        last_sync = prev_sync
+        current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        if status in ("SUCCESS", "healthy/success"):
+            consecutive_failures = 0
+            last_sync = current_time
+        else:
+            consecutive_failures = prev_failures + 1
+
         cursor.execute("""
-            INSERT OR REPLACE INTO feed_health (feed_name, last_sync, status, indicator_count, error_message, latency_ms)
-            VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?)
-        """, (feed_name, status, count, error_msg, latency_ms))
+            INSERT OR REPLACE INTO feed_health (
+                feed_name, last_sync, last_attempt, status, 
+                indicator_count, error_message, latency_ms, consecutive_failures
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (feed_name, last_sync, current_time, status, count, error_msg, latency_ms, consecutive_failures))
+        
         conn.commit()
         conn.close()
 
@@ -161,17 +199,23 @@ class ThreatDB:
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT feed_name, last_sync, status, indicator_count, error_message, latency_ms FROM feed_health")
+        cursor.execute("""
+            SELECT feed_name, last_sync, last_attempt, status, 
+                   indicator_count, error_message, latency_ms, consecutive_failures 
+            FROM feed_health
+        """)
         
         health_list = []
-        for name, last_sync, status, count, error, latency in cursor.fetchall():
+        for name, last_sync, last_attempt, status, count, error, latency, failures in cursor.fetchall():
             health_list.append({
                 "feed_name": name,
                 "last_sync": last_sync,
+                "last_attempt": last_attempt,
                 "status": status,
                 "indicator_count": count,
                 "error_message": error,
-                "latency_ms": latency
+                "latency_ms": latency,
+                "consecutive_failures": failures
             })
         conn.close()
         return health_list

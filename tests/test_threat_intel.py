@@ -1,6 +1,8 @@
 import os
 import time
 import requests
+import sqlite3
+import threading
 import pytest
 from threat_intel.ioc_store import IOCStore, normalize_domain
 from threat_intel.threat_db import ThreatDB
@@ -681,6 +683,180 @@ def test_taxii_client_successful_update_and_integration(mock_get, test_db_path):
     assert health[0]["feed_name"] == "TAXII Feed"
     assert health[0]["status"] == "SUCCESS"
     assert health[0]["indicator_count"] == 1
+
+from threat_intel.background_worker import BackgroundWorker
+
+def test_feed_health_advanced_tracking(test_db_path):
+    db = ThreatDB(test_db_path)
+    
+    # 1. Initial State
+    assert len(db.get_feed_health()) == 0
+    
+    # 2. First Success Update
+    db.update_feed_health("Feed A", "SUCCESS", 50, latency_ms=100.0)
+    health = db.get_feed_health()[0]
+    assert health["consecutive_failures"] == 0
+    assert health["last_sync"] is not None
+    assert health["last_attempt"] is not None
+    
+    first_sync_time = health["last_sync"]
+    
+    # 3. Failed Update
+    db.update_feed_health("Feed A", "FAILED", 0, error_msg="Timeout Error")
+    health = db.get_feed_health()[0]
+    assert health["consecutive_failures"] == 1
+    assert health["last_sync"] == first_sync_time  # Retained old last_sync (no stale timestamp overwrite)
+    assert health["error_message"] == "Timeout Error"
+    
+    # 4. Another Failure (consecutive failure tracking)
+    db.update_feed_health("Feed A", "FAILED", 0, error_msg="HTTP 500")
+    health = db.get_feed_health()[0]
+    assert health["consecutive_failures"] == 2
+    assert health["last_sync"] == first_sync_time
+    
+    # 5. Success resets failures
+    time.sleep(1.0)
+    db.update_feed_health("Feed A", "SUCCESS", 60)
+    health = db.get_feed_health()[0]
+    assert health["consecutive_failures"] == 0
+    assert health["last_sync"] != first_sync_time  # Updated to new timestamp
+
+def test_atomic_update_rollback_on_failure(test_db_path):
+    store = IOCStore(db_path=test_db_path)
+    # Clear store to be precise
+    store._store = {"keep-me.com": {"category": "Botnet", "confidence": 99.0, "source": "local", "details": "local"}}
+    store.db.add_iocs_batch([("keep-me.com", "Botnet", 99.0, "local", "local")])
+    
+    aggregator = ThreatAggregator(store)
+    
+    # Mock database to throw error on batch insert
+    with patch.object(store.db, "add_iocs_batch", side_effect=sqlite3.Error("Disk full")):
+        aggregated = [("new-malicious.com", "Phishing", 80.0, "Feed", "details")]
+        feed_statuses = {"Feed A": {"status": "SUCCESS", "count": 1}}
+        
+        # Verify transaction failure throws error
+        with pytest.raises(RuntimeError):
+            aggregator.update_store_and_db(aggregated, feed_statuses)
+            
+        # Verify in-memory cache was NOT modified (atomic swap rollback)
+        assert store.total_iocs() == 1
+        assert store.lookup("keep-me.com").matched is True
+        assert store.lookup("new-malicious.com").matched is False
+        
+        # Verify health status still logged feed failure
+        health = store.db.get_feed_health()[0]
+        assert health["status"] == "FAILED"
+        assert "Atomic update failed" in health["error_message"]
+
+def test_background_worker_flow(test_db_path):
+    # Setup mocks for TAXIIClient
+    mock_client1 = MagicMock()
+    mock_client1.collection_id = "feed1-id-string"
+    mock_client1.poll_and_parse_feed.return_value = (
+        [{"domain": "c2-server.net", "category": "Command & Control (C2)", "confidence": 95.0, "source": "TAXII: feed1-id"}],
+        {"status": "SUCCESS", "count": 1, "latency_ms": 50.0}
+    )
+    
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    
+    worker = BackgroundWorker(
+        aggregator=aggregator,
+        taxii_clients={"Feed 1": mock_client1},
+        interval_seconds=0.2
+    )
+    
+    assert worker._is_running is False
+    
+    # 1. Startup Worker
+    worker.start()
+    assert worker._is_running is True
+    assert worker.is_alive() is True
+    
+    # Let worker execute at least once
+    time.sleep(0.3)
+    
+    # 2. Shutdown Worker
+    worker.stop()
+    assert worker._is_running is False
+    assert worker.is_alive() is False
+    
+    # Verify records written and memory sync'd
+    assert store.lookup("c2-server.net").matched is True
+    
+    health = store.db.get_feed_health()[0]
+    assert health["feed_name"] == "Feed 1"
+    assert health["status"] == "SUCCESS"
+    assert health["indicator_count"] == 1
+
+def test_background_worker_overlapping_prevention(test_db_path):
+    mock_client = MagicMock()
+    # Mock poll to sleep so we can check concurrency lock behavior
+    def slow_poll():
+        time.sleep(0.5)
+        return [], {"status": "SUCCESS", "count": 0}
+        
+    mock_client.poll_and_parse_feed.side_effect = slow_poll
+    
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    worker = BackgroundWorker(aggregator, {"Slow Feed": mock_client}, interval_seconds=10.0)
+    
+    # Run sync in background thread
+    t = threading.Thread(target=worker.sync_all_feeds)
+    t.start()
+    
+    time.sleep(0.1) # Wait for thread to acquire lock
+    
+    # Try calling concurrently while lock is active
+    statuses = worker.sync_all_feeds()
+    
+    # Overlapping execution should yield empty statuses (skipped run)
+    assert statuses == {}
+    
+    t.join()
+
+def test_multiple_feeds_one_fails_one_succeeds(test_db_path):
+    # Feed 1 Succeeds
+    mock_client1 = MagicMock()
+    mock_client1.collection_id = "feed1-id-string"
+    mock_client1.poll_and_parse_feed.return_value = (
+        [{"domain": "good-intel.com", "category": "Phishing", "confidence": 90.0, "source": "TAXII: feed1-id"}],
+        {"status": "SUCCESS", "count": 1, "latency_ms": 20.0}
+    )
+    
+    # Feed 2 Fails
+    mock_client2 = MagicMock()
+    mock_client2.collection_id = "feed2-id-string"
+    mock_client2.poll_and_parse_feed.return_value = (
+        [],
+        {"status": "FAILED", "count": 0, "error_message": "Timeout Connecting", "latency_ms": 3000.0}
+    )
+    
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    worker = BackgroundWorker(aggregator, {"Feed 1": mock_client1, "Feed 2": mock_client2}, interval_seconds=10.0)
+    
+    statuses = worker.sync_all_feeds()
+    
+    # Verify overall execution didn't crash
+    assert len(statuses) == 2
+    assert statuses["Feed 1"]["status"] == "SUCCESS"
+    assert statuses["Feed 2"]["status"] == "FAILED"
+    
+    # Verify Feed 1 data loaded, old valid cache remains
+    assert store.lookup("good-intel.com").matched is True
+    
+    # Verify health status logging matches
+    health = store.db.get_feed_health()
+    f1_health = next(h for h in health if h["feed_name"] == "Feed 1")
+    assert f1_health["status"] == "SUCCESS"
+    
+    f2_health = next(h for h in health if h["feed_name"] == "Feed 2")
+    assert f2_health["status"] == "FAILED"
+    assert f2_health["error_message"] == "Timeout Connecting"
+    assert f2_health["consecutive_failures"] == 1
+
 
 
 

@@ -114,23 +114,33 @@ class ThreatAggregator:
     ):
         """
         Save the aggregated list to SQLite and synchronize the in-memory store.
-        feed_statuses: dict mapping feed_name -> status dict (status, count, error_message, latency_ms)
+        If any part of the database write fails, the database is rolled back, 
+        and the in-memory cache is NOT modified (retaining old valid IOC data).
         """
-        # 1. Batch insert into SQLite DB
-        if aggregated_iocs:
-            self.db.add_iocs_batch(aggregated_iocs)
-        
-        # 2. Re-load the in-memory cache from SQLite DB to maintain synchronization
-        # (This ensures both dynamic updates and synthetic indicators are in sync)
-        new_store = self.db.load_all_iocs()
-        self.ioc_store._store = new_store
-        
-        # 3. Record feed synchronization health metrics in SQLite
-        for feed_name, status_info in feed_statuses.items():
-            self.db.update_feed_health(
-                feed_name=feed_name,
-                status=status_info.get("status", "UNKNOWN"),
-                count=status_info.get("count", 0),
-                error_msg=status_info.get("error_message"),
-                latency_ms=status_info.get("latency_ms", 0.0)
-            )
+        try:
+            # 1. Batch insert into SQLite DB
+            if aggregated_iocs:
+                self.db.add_iocs_batch(aggregated_iocs)
+            
+            # 2. Re-load the in-memory cache from SQLite DB to maintain synchronization
+            # Only swap the memory store pointer if database writes succeeded
+            new_store = self.db.load_all_iocs()
+            self.ioc_store._store = new_store
+            
+        except Exception as e:
+            # If update failed, reflect the failure across the related feeds
+            for feed_name in feed_statuses:
+                feed_statuses[feed_name]["status"] = "FAILED"
+                feed_statuses[feed_name]["error_message"] = f"Atomic update failed: {e}"
+            raise RuntimeError(f"Atomic update failed: {e}")
+            
+        finally:
+            # 3. Record feed synchronization health metrics in SQLite
+            for feed_name, status_info in feed_statuses.items():
+                self.db.update_feed_health(
+                    feed_name=feed_name,
+                    status=status_info.get("status", "UNKNOWN"),
+                    count=status_info.get("count", 0),
+                    error_msg=status_info.get("error_message"),
+                    latency_ms=status_info.get("latency_ms", 0.0)
+                )
