@@ -77,9 +77,9 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
   const centerInfo = getCenterDisplay();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 animate-fade-in-up delay-2">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 animate-section-fade">
       
-      {/* 1. Real-Time Telemetry Traffic Trend Area Chart with Interactive Hover Crosshair & Real-Time Values Tooltip */}
+      {/* 1. Real-Time Telemetry Traffic Trend Area Chart with Smooth 2.8s SVG Line Drawing */}
       <div className="lg:col-span-2 soc-card rounded-xl p-6 relative overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -107,7 +107,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
           </div>
         </div>
 
-        {/* Dynamic Interactive SVG Area Chart */}
+        {/* Dynamic Interactive SVG Area Chart with SVG Line Drawing */}
         <div className="w-full h-52 relative mt-2">
           <svg 
             className="w-full h-full overflow-visible cursor-crosshair" 
@@ -136,13 +136,11 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
             <line x1="0" y1="75" x2="500" y2="75" stroke="rgba(128,128,128,0.15)" strokeDasharray="4 4" />
             <line x1="0" y1="120" x2="500" y2="120" stroke="rgba(128,128,128,0.15)" strokeDasharray="4 4" />
 
-            {/* Area Fill Reveal */}
+            {/* Allowed Area & Draw Line */}
             <path
               d="M0,130 Q70,90 140,110 T280,60 T420,80 L500,50 L500,150 L0,150 Z"
               fill="url(#gradientAllow)"
-              className="animate-reveal-area"
             />
-            {/* Slow 5.0s Left-to-Right Draw-In Line */}
             <path
               d="M0,130 Q70,90 140,110 T280,60 T420,80 L500,50"
               fill="none"
@@ -151,11 +149,10 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
               className="animate-draw-line"
             />
 
-            {/* Suspicious Area & Draw-In Line */}
+            {/* Suspicious Area & Draw Line */}
             <path
               d="M0,140 Q70,120 140,135 T280,110 T420,125 L500,105 L500,150 L0,150 Z"
               fill="url(#gradientSusp)"
-              className="animate-reveal-area"
             />
             <path
               d="M0,140 Q70,120 140,135 T280,110 T420,125 L500,105"
@@ -165,11 +162,10 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
               className="animate-draw-line"
             />
 
-            {/* Block Area & Draw-In Line */}
+            {/* Block Area & Draw Line */}
             <path
               d="M0,145 Q70,135 140,142 T280,130 T420,140 L500,125 L500,150 L0,150 Z"
               fill="url(#gradientBlock)"
-              className="animate-reveal-area"
             />
             <path
               d="M0,145 Q70,135 140,142 T280,130 T420,140 L500,125"
@@ -232,7 +228,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
         </div>
       </div>
 
-      {/* 2. Threat Vector Breakdown Donut Chart with Hover Segment Interaction */}
+      {/* 2. Threat Vector Breakdown Donut Chart with Donut Entrance Animation */}
       <div className="soc-card rounded-xl p-6 flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
@@ -246,7 +242,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
           </div>
         </div>
 
-        {/* Animated Interactive SVG Donut Chart */}
+        {/* Interactive Animated SVG Donut Chart */}
         <div className="flex items-center justify-center my-4 relative">
           <svg className="w-44 h-44 animate-donut-chart cursor-pointer" viewBox="0 0 100 100">
             {/* Background Ring */}
@@ -264,7 +260,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
               strokeDashoffset="0"
               onMouseEnter={() => setActiveSegment('ALLOW')}
               onMouseLeave={() => setActiveSegment(null)}
-              className="transition-all duration-200 hover:opacity-90"
+              className="transition-all duration-300 hover:opacity-90"
             />
             {/* Suspicious Segment */}
             <circle
@@ -278,7 +274,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
               strokeDashoffset={`-${allowDash}`}
               onMouseEnter={() => setActiveSegment('SUSPICIOUS')}
               onMouseLeave={() => setActiveSegment(null)}
-              className="transition-all duration-200 hover:opacity-90"
+              className="transition-all duration-300 hover:opacity-90"
             />
             {/* Block Segment */}
             <circle
@@ -292,7 +288,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
               strokeDashoffset={`-${allowDash + suspDash}`}
               onMouseEnter={() => setActiveSegment('BLOCK')}
               onMouseLeave={() => setActiveSegment(null)}
-              className="transition-all duration-200 hover:opacity-90"
+              className="transition-all duration-300 hover:opacity-90"
             />
           </svg>
 

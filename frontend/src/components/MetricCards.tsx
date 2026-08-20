@@ -20,7 +20,7 @@ export const MetricCards: React.FC<MetricsProps> = ({ summary }) => {
     : "87.2";
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 animate-fade-in-up delay-1">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 animate-section-fade">
       
       {/* Card 1: Total Queries */}
       <div className="soc-card soc-card-hover p-4 rounded-2xl border-t-4 border-t-cyan-500 min-h-[135px] flex flex-col justify-between relative overflow-hidden">

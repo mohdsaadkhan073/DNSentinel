@@ -89,9 +89,8 @@ export const App: React.FC = () => {
     }
   ]);
 
-  // Fetch metrics & recent queries from REST API & reload animations
-  const refreshData = async () => {
-    setRefreshKey((prev) => prev + 1);
+  // Fetch metrics & recent queries from REST API without forcing component remount
+  const fetchMetricsAndQueries = async () => {
     try {
       const resMetrics = await fetch('http://localhost:8000/api/v1/metrics/summary');
       if (resMetrics.ok) {
@@ -106,6 +105,12 @@ export const App: React.FC = () => {
         }
       }
     } catch (err) {}
+  };
+
+  // Manual Refresh Trigger (User clicks Topbar Refresh button)
+  const handleManualRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+    fetchMetricsAndQueries();
   };
 
   // WebSocket Telemetry Connection with Auto-Reconnect
@@ -125,7 +130,7 @@ export const App: React.FC = () => {
           try {
             const decision: SecurityDecisionItem = JSON.parse(event.data);
             setQueries((prev) => [decision, ...prev.slice(0, 49)]);
-            refreshData();
+            fetchMetricsAndQueries();
           } catch (e) {}
         };
 
@@ -143,7 +148,7 @@ export const App: React.FC = () => {
     };
 
     connectWS();
-    refreshData();
+    fetchMetricsAndQueries();
 
     return () => {
       if (ws) ws.close();
@@ -160,7 +165,7 @@ export const App: React.FC = () => {
       if (res.ok) {
         const decision = await res.json();
         setQueries((prev) => [decision, ...prev.slice(0, 49)]);
-        refreshData();
+        fetchMetricsAndQueries();
       }
     } catch (err) {}
   };
@@ -171,7 +176,7 @@ export const App: React.FC = () => {
     if (report.sample_decisions && report.sample_decisions.length > 0) {
       setQueries((prev) => [...report.sample_decisions, ...prev].slice(0, 50));
     }
-    refreshData();
+    fetchMetricsAndQueries();
   };
 
   return (
@@ -184,7 +189,7 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
         onOpenUpload={() => setIsUploadOpen(true)}
         onRunTestQuery={handleRunTestQuery}
-        onRefresh={refreshData}
+        onRefresh={handleManualRefresh}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         theme={theme}
@@ -200,17 +205,17 @@ export const App: React.FC = () => {
           theme={theme}
           setTheme={setTheme}
           onOpenUpload={() => setIsUploadOpen(true)}
-          onRefresh={refreshData}
+          onRefresh={handleManualRefresh}
           globalSearch={globalSearch}
           setGlobalSearch={setGlobalSearch}
         />
 
-        {/* Padded Workspace Area */}
+        {/* Padded Workspace Area with Smooth Dynamic Tab Fade-In */}
         <main className="flex-1 p-6 space-y-6">
           
           {/* Forensic Report Notification Banner */}
           {forensicReport && (
-            <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-fade-in-up">
+            <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-section-fade">
               <div className="flex items-center gap-3">
                 <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">BATCH PROCESSED</span>
                 <span className="font-semibold">{forensicReport.filename}</span>
@@ -225,23 +230,28 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {/* 5 Core Metric Cards */}
-          <MetricCards key={`metrics-${refreshKey}`} summary={metrics} />
+          {/* Smooth Dynamic View Container keyed on activeTab */}
+          <div key={`view-${activeTab}`} className="animate-section-fade space-y-6">
+            
+            {/* 5 Core Metric Cards */}
+            <MetricCards summary={metrics} />
 
-          {/* Donut & Area Threat Charts */}
-          {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
-            <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
-          )}
+            {/* Donut & Area Threat Charts */}
+            {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
+              <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
+            )}
 
-          {/* Live Stream Table / Domain Inspector / Source IPs / PCAP View */}
-          {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'DOMAIN_INSPECTOR' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
-            <QueryStreamTable
-              queries={queries}
-              onSelectDecision={(decision) => setSelectedDecision(decision)}
-              externalSearch={globalSearch}
-              theme={theme}
-            />
-          )}
+            {/* Live Stream Table / Domain Inspector / Source IPs / PCAP View */}
+            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'DOMAIN_INSPECTOR' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
+              <QueryStreamTable
+                queries={queries}
+                onSelectDecision={(decision) => setSelectedDecision(decision)}
+                externalSearch={globalSearch}
+                theme={theme}
+              />
+            )}
+          </div>
+
         </main>
       </div>
 

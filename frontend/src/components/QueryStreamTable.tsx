@@ -94,7 +94,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
   const isLight = theme === 'light';
 
   return (
-    <div className="soc-card rounded-2xl overflow-hidden mb-6 animate-fade-in-up delay-3">
+    <div className="soc-card rounded-2xl overflow-hidden mb-6 animate-section-fade">
       
       {/* Table Header & Search/Filter Bar */}
       <div className="p-5 border-b border-emerald-900/20 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -107,7 +107,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {/* Table Search Input Bar with Guaranteed Pure White in Light Mode */}
+          {/* Table Search Input Bar */}
           <div className="relative w-full sm:w-64 flex items-center">
             <Search className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none shrink-0" />
             <input
@@ -123,7 +123,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                   ? { backgroundColor: '#FFFFFF', color: '#0F172A', borderColor: '#CBD5E1' } 
                   : { backgroundColor: '#05120C', color: '#F8FAFC', borderColor: 'rgba(16, 185, 129, 0.8)' }
               }
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl text-xs font-mono placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl text-xs font-mono placeholder-slate-400 outline-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all shadow-sm"
             />
           </div>
 
@@ -358,7 +358,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                 ? { backgroundColor: '#FFFFFF', color: '#0F172A', borderColor: '#CBD5E1' } 
                 : { backgroundColor: '#05120C', color: '#F8FAFC', borderColor: 'rgba(16, 185, 129, 0.8)' }
             }
-            className="px-2 py-1 rounded-lg font-bold focus:outline-none focus:border-emerald-500 shadow-sm"
+            className="px-2 py-1 rounded-lg font-bold outline-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 shadow-sm"
           >
             <option value={10}>10</option>
             <option value={20}>20</option>

@@ -148,11 +148,11 @@ body {
   border-color: rgba(16, 185, 129, 0.4);
 }
 
-/* Lightweight Startup Entrance Animations */
-@keyframes fadeInUp {
+/* Smooth Universal Section Fade-In Entrance (0.6s) */
+@keyframes sectionFadeIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -160,36 +160,31 @@ body {
   }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-section-fade {
+  animation: sectionFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Slow, Smooth Live Graph Line Drawing Keyframes (5.0s) */
+/* Slow SVG Line Draw Animation (6.0s Left-to-Right Draw-In) */
 @keyframes drawGraphLine {
   0% {
     stroke-dashoffset: 1200;
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
   }
   100% {
     stroke-dashoffset: 0;
-    opacity: 1;
   }
 }
 
 .animate-draw-line {
   stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  animation: drawGraphLine 5.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  stroke-dashoffset: 0;
+  animation: drawGraphLine 6.0s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* Donut Scale & Rotate Entrance (3.8s) */
+/* Slow Donut Chart Scale & Rotation Entrance Animation (4.5s) */
 @keyframes donutEntrance {
   0% {
     opacity: 0;
-    transform: scale(0.7) rotate(-180deg);
+    transform: scale(0.8) rotate(-180deg);
   }
   100% {
     opacity: 1;
@@ -199,12 +194,8 @@ body {
 
 .animate-donut-chart {
   transform-origin: center;
-  animation: donutEntrance 3.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation: donutEntrance 4.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
-
-.delay-1 { animation-delay: 0.05s; }
-.delay-2 { animation-delay: 0.12s; }
-.delay-3 { animation-delay: 0.18s; }
 
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
