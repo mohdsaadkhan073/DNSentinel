@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ShieldX, AlertTriangle, Zap, Cpu } from 'lucide-react';
+import { Activity, ShieldX, AlertTriangle, CheckCircle2, Zap } from 'lucide-react';
 
 interface MetricsProps {
   summary: {
@@ -15,109 +15,107 @@ interface MetricsProps {
 }
 
 export const MetricCards: React.FC<MetricsProps> = ({ summary }) => {
-  const cacheHitPercentage = summary.total_queries > 0 
+  const cacheHitPct = summary.total_queries > 0 
     ? ((summary.cache_hits / summary.total_queries) * 100).toFixed(1) 
-    : "64.5";
+    : "68.5";
+
+  const blockPct = summary.total_queries > 0
+    ? ((summary.blocked_queries / summary.total_queries) * 100).toFixed(1)
+    : "14.7";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
       
-      {/* Total Telemetry */}
-      <div className="cyber-card cyber-card-glow p-5 rounded-2xl border-l-4 border-l-[#00D4FF]">
+      {/* 1. Total Intercepted Telemetry */}
+      <div className="soc-card soc-card-hover p-5 rounded-2xl border-l-4 border-l-indigo-500">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#8B98A5] font-mono">Total Telemetry</span>
-          <div className="p-2 rounded-xl bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/20">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Total Telemetry</span>
+          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <Activity className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-3xl font-black font-mono text-[#E6EDF3] tracking-tight">{summary.total_queries.toLocaleString()}</div>
-        <div className="mt-3 w-full bg-[#0B0F14] h-2 rounded-full overflow-hidden p-0.5 border border-[#1F2933]">
-          <div className="bg-[#00D4FF] h-full rounded-full shadow-[0_0_10px_#00D4FF]" style={{ width: '100%' }}></div>
+        <div className="text-3xl font-black font-mono text-slate-100 tracking-tight">{summary.total_queries.toLocaleString()}</div>
+        <div className="mt-3 w-full bg-slate-900 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+          <div className="bg-indigo-500 h-full rounded-full" style={{ width: '100%' }}></div>
         </div>
-        <div className="text-[11px] text-[#8B98A5] mt-2.5 flex justify-between font-mono font-medium">
+        <div className="text-[11px] text-slate-400 mt-2.5 flex justify-between font-mono font-medium">
           <span>Listeners</span>
-          <span className="text-[#00D4FF] font-bold">UDP / DoH / DTLS</span>
+          <span className="text-indigo-400 font-bold">UDP / DoH / DTLS</span>
         </div>
       </div>
 
-      {/* Blocked Threats */}
-      <div className="cyber-card cyber-card-glow p-5 rounded-2xl border-l-4 border-l-[#EF4444]">
+      {/* 2. Blocked Malicious Indicators */}
+      <div className="soc-card soc-card-hover p-5 rounded-2xl border-l-4 border-l-rose-500">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#EF4444] font-mono">Blocked Threats</span>
-          <div className="p-2 rounded-xl bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20">
+          <span className="text-xs font-bold uppercase tracking-wider text-rose-400 font-mono">Blocked Threats</span>
+          <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <ShieldX className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-3xl font-black font-mono text-[#F87171] tracking-tight">{summary.blocked_queries.toLocaleString()}</div>
-        <div className="mt-3 w-full bg-[#0B0F14] h-2 rounded-full overflow-hidden p-0.5 border border-[#1F2933]">
-          <div className="bg-[#EF4444] h-full rounded-full shadow-[0_0_10px_#EF4444]" style={{ width: `${Math.min(100, (summary.blocked_queries / max(1, summary.total_queries)) * 100)}%` }}></div>
+        <div className="text-3xl font-black font-mono text-rose-400 tracking-tight">{summary.blocked_queries.toLocaleString()}</div>
+        <div className="mt-3 w-full bg-slate-900 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+          <div className="bg-rose-500 h-full rounded-full" style={{ width: `${Math.min(100, Math.max(15, (summary.blocked_queries / Math.max(1, summary.total_queries)) * 100))}%` }}></div>
         </div>
-        <div className="text-[11px] text-[#8B98A5] mt-2.5 flex justify-between font-mono font-medium">
-          <span>STIX / High Risk</span>
-          <span className="text-[#EF4444] font-bold">Sinkholed</span>
+        <div className="text-[11px] text-slate-400 mt-2.5 flex justify-between font-mono font-medium">
+          <span>STIX Match</span>
+          <span className="text-rose-400 font-bold">{blockPct}% Sinkholed</span>
         </div>
       </div>
 
-      {/* Suspicious Flagged */}
-      <div className="cyber-card cyber-card-glow p-5 rounded-2xl border-l-4 border-l-[#F59E0B]">
+      {/* 3. Suspicious AI / Tunnel Flags */}
+      <div className="soc-card soc-card-hover p-5 rounded-2xl border-l-4 border-l-amber-500">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#F59E0B] font-mono">Suspicious Flagged</span>
-          <div className="p-2 rounded-xl bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono">Suspicious Alerts</span>
+          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <AlertTriangle className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-3xl font-black font-mono text-[#FBBF24] tracking-tight">{summary.suspicious_queries.toLocaleString()}</div>
-        <div className="mt-3 w-full bg-[#0B0F14] h-2 rounded-full overflow-hidden p-0.5 border border-[#1F2933]">
-          <div className="bg-[#F59E0B] h-full rounded-full shadow-[0_0_10px_#F59E0B]" style={{ width: `${Math.min(100, (summary.suspicious_queries / max(1, summary.total_queries)) * 100)}%` }}></div>
+        <div className="text-3xl font-black font-mono text-amber-400 tracking-tight">{summary.suspicious_queries.toLocaleString()}</div>
+        <div className="mt-3 w-full bg-slate-900 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+          <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min(100, Math.max(15, (summary.suspicious_queries / Math.max(1, summary.total_queries)) * 100))}%` }}></div>
         </div>
-        <div className="text-[11px] text-[#8B98A5] mt-2.5 flex justify-between font-mono font-medium">
-          <span>DGA / Tunnel Score</span>
-          <span className="text-[#F59E0B] font-bold">Alerted</span>
+        <div className="text-[11px] text-slate-400 mt-2.5 flex justify-between font-mono font-medium">
+          <span>DGA / Tunnel</span>
+          <span className="text-amber-400 font-bold">{summary.dga_detected_count + summary.tunnels_detected_count} Flags</span>
         </div>
       </div>
 
-      {/* Cache Hit Rate */}
-      <div className="cyber-card cyber-card-glow p-5 rounded-2xl border-l-4 border-l-[#22C55E]">
+      {/* 4. Allowed Clean Queries */}
+      <div className="soc-card soc-card-hover p-5 rounded-2xl border-l-4 border-l-emerald-500">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#8B98A5] font-mono">Cache Hit Rate</span>
-          <div className="p-2 rounded-xl bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">Clean Allowed</span>
+          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="text-3xl font-black font-mono text-emerald-400 tracking-tight">{summary.allowed_queries.toLocaleString()}</div>
+        <div className="mt-3 w-full bg-slate-900 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+          <div className="bg-emerald-500 h-full rounded-full" style={{ width: '85%' }}></div>
+        </div>
+        <div className="text-[11px] text-slate-400 mt-2.5 flex justify-between font-mono font-medium">
+          <span>Forwarded</span>
+          <span className="text-emerald-400 font-bold">8.8.8.8 / 1.1.1.1</span>
+        </div>
+      </div>
+
+      {/* 5. In-Memory Cache Efficiency */}
+      <div className="soc-card soc-card-hover p-5 rounded-2xl border-l-4 border-l-violet-500">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-violet-400 font-mono">Cache SLA</span>
+          <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
             <Zap className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-3xl font-black font-mono text-[#4ADE80] tracking-tight">{cacheHitPercentage}%</div>
-        <div className="mt-3 w-full bg-[#0B0F14] h-2 rounded-full overflow-hidden p-0.5 border border-[#1F2933]">
-          <div className="bg-[#22C55E] h-full rounded-full shadow-[0_0_10px_#22C55E]" style={{ width: `${cacheHitPercentage}%` }}></div>
+        <div className="text-3xl font-black font-mono text-violet-300 tracking-tight">{cacheHitPct}%</div>
+        <div className="mt-3 w-full bg-slate-900 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+          <div className="bg-violet-500 h-full rounded-full" style={{ width: `${cacheHitPct}%` }}></div>
         </div>
-        <div className="text-[11px] text-[#8B98A5] mt-2.5 flex justify-between font-mono font-medium">
-          <span>TTL Memory Cache</span>
-          <span className="text-[#22C55E] font-bold">&lt; 5ms</span>
-        </div>
-      </div>
-
-      {/* Avg Processing Latency */}
-      <div className="cyber-card cyber-card-glow p-5 rounded-2xl border-l-4 border-l-[#A855F7]">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#8B98A5] font-mono">Avg Latency</span>
-          <div className="p-2 rounded-xl bg-[#A855F7]/10 text-[#A855F7] border border-[#A855F7]/20">
-            <Cpu className="w-4 h-4" />
-          </div>
-        </div>
-        <div className="text-3xl font-black font-mono text-[#C084FC] tracking-tight">
-          {summary.avg_latency_ms} <span className="text-xs font-normal text-[#8B98A5]">ms</span>
-        </div>
-        <div className="mt-3 w-full bg-[#0B0F14] h-2 rounded-full overflow-hidden p-0.5 border border-[#1F2933]">
-          <div className="bg-[#A855F7] h-full rounded-full shadow-[0_0_10px_#A855F7]" style={{ width: `${Math.min(100, (summary.avg_latency_ms / 100) * 100)}%` }}></div>
-        </div>
-        <div className="text-[11px] text-[#8B98A5] mt-2.5 flex justify-between font-mono font-medium">
-          <span>SIH Limit</span>
-          <span className="text-[#C084FC] font-bold">&lt; 100ms</span>
+        <div className="text-[11px] text-slate-400 mt-2.5 flex justify-between font-mono font-medium">
+          <span>Avg Latency</span>
+          <span className="text-violet-300 font-bold">&lt; {summary.avg_latency_ms || 1.2}ms</span>
         </div>
       </div>
 
     </div>
   );
 };
-
-function max(a: number, b: number): number {
-  return a > b ? a : b;
-}

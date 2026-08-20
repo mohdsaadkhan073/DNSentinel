@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
 import { MetricCards } from './components/MetricCards';
+import { ThreatCharts } from './components/ThreatCharts';
 import { QueryStreamTable, SecurityDecisionItem } from './components/QueryStreamTable';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
 
 export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
+  const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
@@ -51,33 +53,33 @@ export const App: React.FC = () => {
     },
     {
       decision_id: "sec-9903-e5f6",
-      query: { domain: "cxz98qwe12a.info", client_ip: "192.168.1.110", protocol: "DoH", qtype: "A" },
-      action: "BLOCK",
-      composite_risk_score: 84.0,
+      query: { domain: "cxz98qwe12a98f.info", client_ip: "192.168.1.110", protocol: "DoH", qtype: "A" },
+      action: "SUSPICIOUS",
+      composite_risk_score: 39.8,
       intel_result: { matched: false, intel_score: 0 },
-      ml_result: { is_dga: true, dga_probability: 0.92 },
+      ml_result: { is_dga: true, dga_probability: 0.995 },
       tunnel_result: { is_tunnel: false, tunnel_score: 25, entropy: 4.2 },
       latency_ms: 7.2,
       cache_hit: false,
-      resolved_ip: "0.0.0.0",
-      rationale: "Blocked: High composite risk score (84.0 >= 70.0). High DGA probability."
+      resolved_ip: "8.8.8.8",
+      rationale: "Suspicious: Moderate risk score (39.8). High DGA probability."
     },
     {
       decision_id: "sec-9904-g7h8",
-      query: { domain: "a1b2c3d4e5f6g7h8i9j0.tunnel-server.net", client_ip: "192.168.1.120", protocol: "DTLS", qtype: "TXT" },
+      query: { domain: "4f8a91b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8-fresh.attacker-tunnel.net", client_ip: "192.168.1.120", protocol: "DTLS", qtype: "TXT" },
       action: "SUSPICIOUS",
-      composite_risk_score: 62.5,
+      composite_risk_score: 50.2,
       intel_result: { matched: false, intel_score: 0 },
       ml_result: { is_dga: false, dga_probability: 0.35 },
-      tunnel_result: { is_tunnel: true, tunnel_score: 75, entropy: 4.8 },
+      tunnel_result: { is_tunnel: true, tunnel_score: 65, entropy: 4.17 },
       latency_ms: 6.5,
       cache_hit: false,
-      resolved_ip: "192.168.1.120",
-      rationale: "Suspicious: High DNS Tunneling score (75.0). Flagged for monitoring."
+      resolved_ip: "8.8.8.8",
+      rationale: "Suspicious: DNS Tunneling activity flagged (Excessive subdomain prefix length)."
     }
   ]);
 
-  // Fetch metrics & queries from REST API
+  // Fetch metrics & recent queries from REST API
   const refreshData = async () => {
     try {
       const resMetrics = await fetch('http://localhost:8000/api/v1/metrics/summary');
@@ -98,40 +100,34 @@ export const App: React.FC = () => {
   // WebSocket Telemetry Connection with Auto-Reconnect
   useEffect(() => {
     let ws: WebSocket | null = null;
-    let timer: any = null;
+    let reconnectTimeout: any = null;
 
     const connectWS = () => {
       try {
         ws = new WebSocket('ws://localhost:8000/ws/telemetry');
+
         ws.onopen = () => {
           setWsConnected(true);
         };
+
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
-            if (data.decision_id) {
-              setQueries((prev) => [data, ...prev.slice(0, 49)]);
-              setMetrics((prev) => ({
-                ...prev,
-                total_queries: prev.total_queries + 1,
-                blocked_queries: data.action === 'BLOCK' ? prev.blocked_queries + 1 : prev.blocked_queries,
-                suspicious_queries: data.action === 'SUSPICIOUS' ? prev.suspicious_queries + 1 : prev.suspicious_queries,
-                allowed_queries: data.action === 'ALLOW' ? prev.allowed_queries + 1 : prev.allowed_queries
-              }));
-            }
-          } catch (err) {}
+            const decision: SecurityDecisionItem = JSON.parse(event.data);
+            setQueries((prev) => [decision, ...prev.slice(0, 49)]);
+            refreshData();
+          } catch (e) {}
         };
+
         ws.onclose = () => {
           setWsConnected(false);
-          timer = setTimeout(connectWS, 3000);
+          reconnectTimeout = setTimeout(connectWS, 3000);
         };
+
         ws.onerror = () => {
           setWsConnected(false);
-          ws?.close();
         };
       } catch (err) {
         setWsConnected(false);
-        timer = setTimeout(connectWS, 3000);
       }
     };
 
@@ -139,72 +135,97 @@ export const App: React.FC = () => {
     refreshData();
 
     return () => {
-      if (timer) clearTimeout(timer);
       if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);
 
-  const runTestQuery = async (domain: string) => {
+  // Quick Test Query Trigger
+  const handleRunTestQuery = async (domain: string, qtype: string = "A") => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/dns/evaluate?domain=${encodeURIComponent(domain)}`, {
+      const res = await fetch(`http://localhost:8000/api/v1/dns/evaluate?domain=${encodeURIComponent(domain)}&qtype=${qtype}`, {
         method: 'POST'
       });
       if (res.ok) {
         const decision = await res.json();
         setQueries((prev) => [decision, ...prev.slice(0, 49)]);
-        setSelectedDecision(decision);
+        refreshData();
       }
-    } catch (err) {
-      alert(`Backend API offline. Make sure 'python -m backend.main' is running.`);
+    } catch (err) {}
+  };
+
+  // Forensic Upload Success Handler
+  const handleUploadSuccess = (report: any) => {
+    setForensicReport(report);
+    if (report.sample_decisions && report.sample_decisions.length > 0) {
+      setQueries((prev) => [...report.sample_decisions, ...prev].slice(0, 50));
     }
+    refreshData();
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F14] text-[#E6EDF3] flex flex-col p-4 md:p-6">
-      <div className="max-w-7xl mx-auto w-full space-y-6">
+    <div className="min-h-screen p-4 sm:p-6 max-w-[1800px] mx-auto flex flex-col lg:flex-row gap-6">
+      
+      {/* Left Sidebar Navigation */}
+      <Sidebar
+        wsConnected={wsConnected}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenUpload={() => setIsUploadOpen(true)}
+        onRunTestQuery={handleRunTestQuery}
+        onRefresh={refreshData}
+      />
+
+      {/* Main Right Content Area */}
+      <main className="flex-1 space-y-6 min-w-0">
         
-        {/* Modern Cyber Header */}
-        <Header 
-          wsConnected={wsConnected}
-          onOpenUpload={() => setIsUploadOpen(true)}
-          onRunTestQuery={runTestQuery}
-          onRefresh={refreshData}
-        />
-
-        {/* Metric Stat Cards */}
-        <MetricCards summary={metrics} />
-
-        {/* Forensic Report Alert (If PCAP / Zeek uploaded) */}
+        {/* Forensic Report Banner */}
         {forensicReport && (
-          <div className="cyber-card p-4 rounded-2xl border-l-4 border-l-[#00D4FF] flex items-center justify-between text-xs font-mono">
-            <div>
-              <span className="font-bold text-[#00D4FF]">Forensic Packet Analysis Complete: </span>
-              Analyzed {forensicReport.total_queries_analyzed} queries from <span className="text-white font-bold">{forensicReport.filename}</span> ({forensicReport.blocked} Blocked, {forensicReport.suspicious} Suspicious, {forensicReport.allowed} Allowed).
+          <div className="soc-card rounded-2xl p-4 border-l-4 border-l-indigo-500 flex items-center justify-between font-mono text-xs">
+            <div className="flex items-center gap-3">
+              <span className="px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold">BATCH PROCESSED</span>
+              <span className="text-slate-200 font-semibold">{forensicReport.filename}</span>
+              <span className="text-slate-400">({forensicReport.total_queries_analyzed} queries evaluated)</span>
             </div>
-            <button onClick={() => setForensicReport(null)} className="text-[#8B98A5] hover:text-[#E6EDF3]">Dismiss</button>
+            <button 
+              onClick={() => setForensicReport(null)}
+              className="text-slate-400 hover:text-slate-200 text-xs font-bold underline"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
-        {/* Real-time Query Stream Table */}
-        <QueryStreamTable 
-          queries={queries}
-          onSelectDecision={(item) => setSelectedDecision(item)}
-        />
+        {/* Top KPI Metric Cards */}
+        <MetricCards summary={metrics} />
 
-      </div>
+        {/* Donut & Area Charts */}
+        {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
+          <ThreatCharts summary={metrics} />
+        )}
 
-      {/* Domain Evidence Inspector Modal */}
-      <EvidenceModal 
+        {/* Live Stream Table */}
+        {(activeTab === 'DASHBOARD' || activeTab === 'STREAM') && (
+          <QueryStreamTable
+            queries={queries}
+            onSelectDecision={(decision) => setSelectedDecision(decision)}
+          />
+        )}
+      </main>
+
+      {/* Evidence Inspector Modal */}
+      <EvidenceModal
         decision={selectedDecision}
         onClose={() => setSelectedDecision(null)}
       />
 
-      {/* PCAP / Zeek Upload Modal */}
-      <UploadModal 
+      {/* Passive Upload Modal */}
+      <UploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onUploadSuccess={(report) => setForensicReport(report)}
+        onUploadSuccess={handleUploadSuccess}
       />
+
     </div>
   );
 };
