@@ -130,12 +130,35 @@ class DGAClassifier:
     
     def predict_sync(self, domain: str) -> MLDgaResult:
         """Synchronous version of predict"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(self.predict(domain))
-        loop.close()
-        return result
+        start_time = time.perf_counter()
+        features, feature_dict = self.feature_extractor.extract(domain)
+        features_2d = features.reshape(1, -1)
+        if self.is_loaded and self.model is not None:
+            try:
+                proba = self.model.predict_proba(features_2d)[0]
+                dga_probability = float(proba[1]) if len(proba) > 1 else 0.0
+                confidence = self._calculate_confidence(features_2d, dga_probability)
+            except Exception as e:
+                logger.error(f"Model prediction failed: {e}")
+                dga_probability = self._heuristic_score(features, feature_dict)
+                confidence = min(1.0, dga_probability)
+        else:
+            dga_probability = self._heuristic_score(features, feature_dict)
+            confidence = min(1.0, dga_probability)
+
+        is_dga = dga_probability >= self.threshold
+        inference_latency_ms = (time.perf_counter() - start_time) * 1000
+
+        return MLDgaResult(
+            domain=domain,
+            dga_probability=dga_probability,
+            is_dga=is_dga,
+            confidence_score=confidence,
+            inference_latency_ms=inference_latency_ms,
+            model_version=self.model_version,
+            features=features.tolist(),
+            feature_names=FEATURE_NAMES
+        )
     
     def _calculate_confidence(self, features: np.ndarray, probability: float) -> float:
         """Calculate confidence score for the prediction"""

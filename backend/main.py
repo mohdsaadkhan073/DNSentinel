@@ -1,4 +1,5 @@
 import sys
+import uuid
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -17,6 +18,7 @@ from threat_intel.ioc_store import IOCStore
 from ml.dga_classifier import DGAClassifier
 from passive.tunnel_detector import TunnelDetector
 from passive.pcap_parser import PCAPParser
+from passive.zeek_parser import ZeekParser
 from passive.batch_analyzer import BatchAnalyzer
 
 # Instantiate Core System Components
@@ -96,7 +98,7 @@ def get_intel_stats():
 @app.post("/api/v1/dns/evaluate")
 async def evaluate_dns_query(domain: str, client_ip: str = "192.168.1.100", qtype: str = "A"):
     query = DNSQuery(
-        query_id="eval-01",
+        query_id=f"tx-{str(uuid.uuid4())[:8]}",
         domain=domain,
         client_ip=client_ip,
         qtype=qtype
@@ -118,6 +120,23 @@ async def upload_pcap_file(file: UploadFile = File(...)):
         "blocked": report["blocked_count"],
         "suspicious": report["suspicious_count"],
         "allowed": report["allowed_count"],
+        "estimated_payload_bytes": report.get("total_payload_bytes", 0),
+        "sample_decisions": report["decisions"][:10]
+    }
+
+@app.post("/api/v1/passive/upload-zeek")
+async def upload_zeek_file(file: UploadFile = File(...)):
+    contents = await file.read()
+    text = contents.decode("utf-8", errors="ignore")
+    parsed_queries = ZeekParser.parse_zeek_tsv(text)
+    report = batch_analyzer.analyze_batch(parsed_queries)
+    return {
+        "filename": file.filename,
+        "total_queries_analyzed": report["total_queries"],
+        "blocked": report["blocked_count"],
+        "suspicious": report["suspicious_count"],
+        "allowed": report["allowed_count"],
+        "estimated_payload_bytes": report.get("total_payload_bytes", 0),
         "sample_decisions": report["decisions"][:10]
     }
 
