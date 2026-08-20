@@ -173,21 +173,36 @@ class Orchestrator:
 
     def _call_module_sync(self, obj: Any, method_name: str, arg: Any, fallback: Any) -> Any:
         try:
+            sync_method = getattr(obj, f"{method_name}_sync", None)
+            if sync_method:
+                return sync_method(arg)
             method = getattr(obj, method_name, None)
             if method:
-                return method(arg)
+                res = method(arg)
+                if asyncio.iscoroutine(res):
+                    res.close()  # close unawaited coroutine if sync fallback called
+                    return fallback
+                return res
         except Exception:
             pass
         return fallback
 
+
     async def _call_module_async(self, obj: Any, method_name: str, arg: Any, fallback: Any) -> Any:
         try:
+            async_method = getattr(obj, f"{method_name}_async", None)
+            if async_method and asyncio.iscoroutinefunction(async_method):
+                return await async_method(arg)
+
             method = getattr(obj, method_name, None)
             if method:
                 if asyncio.iscoroutinefunction(method):
                     return await method(arg)
                 else:
-                    return await asyncio.to_thread(method, arg)
+                    res = method(arg)
+                    if asyncio.iscoroutine(res):
+                        return await res
+                    return res
         except Exception:
             pass
         return fallback

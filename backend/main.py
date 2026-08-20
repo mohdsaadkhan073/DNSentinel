@@ -1,8 +1,13 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from shared.schemas import MetricsSummary, DNSQuery, ActionDecision
+
 from shared.config import FASTAPI_HOST, FASTAPI_PORT
 from backend.database import DatabaseManager
 from backend.websocket import WebSocketManager
@@ -33,6 +38,7 @@ batch_analyzer = BatchAnalyzer(orchestrator=orchestrator)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db_manager.init_db()
+    dga_classifier.warmup()
     print("[Backend] DNSentinel FastAPI Telemetry Server initialized successfully.")
     yield
 
@@ -95,10 +101,11 @@ async def evaluate_dns_query(domain: str, client_ip: str = "192.168.1.100", qtyp
         client_ip=client_ip,
         qtype=qtype
     )
-    decision = orchestrator.process_query(query)
+    decision = await orchestrator.process_query_async(query)
     await db_manager.log_decision(decision)
     await ws_manager.broadcast(decision.model_dump(mode="json"))
     return decision
+
 
 @app.post("/api/v1/passive/upload-pcap")
 async def upload_pcap_file(file: UploadFile = File(...)):
