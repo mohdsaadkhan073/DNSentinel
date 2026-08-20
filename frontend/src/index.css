@@ -8,9 +8,21 @@
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Green Text Selection Highlight */
+::selection {
+  background-color: rgba(16, 185, 129, 0.35) !important;
+  color: #047857 !important;
+}
+
+::-moz-selection {
+  background-color: rgba(16, 185, 129, 0.35) !important;
+  color: #047857 !important;
+}
+
 /* ================= LIGHT EMERALD ENTERPRISE THEME (PRIMARY DEFAULT) ================= */
 [data-theme="light"], body:not([data-theme="dark"]) {
   --bg-main: #F0F4F2;
+  --bg-topbar: #FFFFFF;
   --bg-sidebar: #011711;
   --card-bg: rgba(255, 255, 255, 0.95);
   --card-border: rgba(4, 120, 87, 0.18);
@@ -31,10 +43,11 @@
 /* ================= DARK EMERALD COMMAND THEME (DEFINED VISIBLE EMERALD BORDERS) ================= */
 [data-theme="dark"] {
   --bg-main: #030C08;
+  --bg-topbar: #04160E;
   --bg-sidebar: #04160E;
   --card-bg: #07150F;
-  --card-border: rgba(16, 185, 129, 0.32); /* Defined visible section border */
-  --card-shadow: 0 0 16px -2px rgba(16, 185, 129, 0.08), inset 0 0 1px rgba(16, 185, 129, 0.2); /* Defined edge glow */
+  --card-border: rgba(16, 185, 129, 0.32);
+  --card-shadow: 0 0 16px -2px rgba(16, 185, 129, 0.08), inset 0 0 1px rgba(16, 185, 129, 0.2);
   --card-hover-border: rgba(52, 211, 153, 0.7);
   --card-hover-shadow: 0 8px 25px -4px rgba(16, 185, 129, 0.25);
   --text-primary: #F8FAFC;
@@ -108,7 +121,7 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
-/* Clean Solid Emerald Primary Action Button (Zero Glow) */
+/* Clean Solid Emerald Primary Action Button */
 .btn-emerald-primary {
   background: #059669;
   color: #FFFFFF;

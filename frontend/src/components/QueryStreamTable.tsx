@@ -25,18 +25,21 @@ export interface SecurityDecisionItem {
 interface TableProps {
   queries: SecurityDecisionItem[];
   onSelectDecision: (decision: SecurityDecisionItem) => void;
+  externalSearch?: string;
 }
 
-export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecision }) => {
+export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecision, externalSearch = '' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAction, setFilterAction] = useState<string>('ALL');
+
+  const activeSearch = (searchTerm || externalSearch).toLowerCase();
 
   // Filter queries based on search term and action pills
   const filteredQueries = queries.filter(item => {
     const matchesSearch = 
-      item.query.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.query.client_ip.includes(searchTerm) ||
-      (item.resolved_ip && item.resolved_ip.includes(searchTerm));
+      item.query.domain.toLowerCase().includes(activeSearch) ||
+      item.query.client_ip.includes(activeSearch) ||
+      (item.resolved_ip && item.resolved_ip.includes(activeSearch));
 
     if (filterAction === 'ALL') return matchesSearch;
     if (filterAction === 'CACHE') return matchesSearch && item.cache_hit;
@@ -57,12 +60,12 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {/* Search Input Bar */}
+          {/* Table Search Input Bar */}
           <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search domain or IP..."
+              placeholder="Filter stream table..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 text-xs font-mono theme-title placeholder-slate-400 focus:outline-none focus:border-emerald-500"

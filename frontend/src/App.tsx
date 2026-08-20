@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
 import { MetricCards } from './components/MetricCards';
 import { ThreatCharts } from './components/ThreatCharts';
 import { QueryStreamTable, SecurityDecisionItem } from './components/QueryStreamTable';
@@ -11,6 +12,8 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('light'); // Light mode default
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
@@ -86,8 +89,9 @@ export const App: React.FC = () => {
     }
   ]);
 
-  // Fetch metrics & recent queries from REST API
+  // Fetch metrics & recent queries from REST API & reload animations
   const refreshData = async () => {
+    setRefreshKey((prev) => prev + 1);
     try {
       const resMetrics = await fetch('http://localhost:8000/api/v1/metrics/summary');
       if (resMetrics.ok) {
@@ -173,7 +177,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row font-sans">
       
-      {/* Left Sidebar Section with 6 requested navigation tabs */}
+      {/* Left Sidebar Section */}
       <Sidebar
         wsConnected={wsConnected}
         activeTab={activeTab}
@@ -187,42 +191,58 @@ export const App: React.FC = () => {
         setTheme={setTheme}
       />
 
-      {/* Main Right Content Area */}
-      <main className="flex-1 p-6 space-y-6 min-w-0">
+      {/* Main Right Area: Top Header + Padded Content Workspace */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         
-        {/* Forensic Report Notification Banner */}
-        {forensicReport && (
-          <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-fade-in-up">
-            <div className="flex items-center gap-3">
-              <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">BATCH PROCESSED</span>
-              <span className="font-semibold">{forensicReport.filename}</span>
-              <span className="opacity-75">({forensicReport.total_queries_analyzed} queries evaluated)</span>
+        {/* Flush Top Bar Header (Zero Margins, Flush to Top and Sidebar) */}
+        <Header
+          wsConnected={wsConnected}
+          theme={theme}
+          setTheme={setTheme}
+          onOpenUpload={() => setIsUploadOpen(true)}
+          onRefresh={refreshData}
+          globalSearch={globalSearch}
+          setGlobalSearch={setGlobalSearch}
+        />
+
+        {/* Padded Workspace Area */}
+        <main className="flex-1 p-6 space-y-6">
+          
+          {/* Forensic Report Notification Banner */}
+          {forensicReport && (
+            <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-fade-in-up">
+              <div className="flex items-center gap-3">
+                <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">BATCH PROCESSED</span>
+                <span className="font-semibold">{forensicReport.filename}</span>
+                <span className="opacity-75">({forensicReport.total_queries_analyzed} queries evaluated)</span>
+              </div>
+              <button 
+                onClick={() => setForensicReport(null)}
+                className="text-xs font-bold underline opacity-75 hover:opacity-100"
+              >
+                Dismiss
+              </button>
             </div>
-            <button 
-              onClick={() => setForensicReport(null)}
-              className="text-xs font-bold underline opacity-75 hover:opacity-100"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* 5 Core Metric Cards */}
-        <MetricCards summary={metrics} />
+          {/* 5 Core Metric Cards */}
+          <MetricCards key={`metrics-${refreshKey}`} summary={metrics} />
 
-        {/* Donut & Area Threat Charts */}
-        {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
-          <ThreatCharts summary={metrics} />
-        )}
+          {/* Donut & Area Threat Charts */}
+          {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
+            <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
+          )}
 
-        {/* Live Stream Table / Domain Inspector / Source IPs / PCAP View */}
-        {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'DOMAIN_INSPECTOR' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
-          <QueryStreamTable
-            queries={queries}
-            onSelectDecision={(decision) => setSelectedDecision(decision)}
-          />
-        )}
-      </main>
+          {/* Live Stream Table / Domain Inspector / Source IPs / PCAP View */}
+          {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'DOMAIN_INSPECTOR' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
+            <QueryStreamTable
+              queries={queries}
+              onSelectDecision={(decision) => setSelectedDecision(decision)}
+              externalSearch={globalSearch}
+            />
+          )}
+        </main>
+      </div>
 
       {/* Evidence Inspector Modal */}
       <EvidenceModal

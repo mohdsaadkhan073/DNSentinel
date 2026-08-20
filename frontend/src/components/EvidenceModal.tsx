@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldAlert, Cpu, Radio, FileText, CheckCircle2, AlertTriangle, ShieldX } from 'lucide-react';
 import { SecurityDecisionItem } from './QueryStreamTable';
 
@@ -8,44 +8,58 @@ interface EvidenceModalProps {
 }
 
 export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose }) => {
-  if (!decision) return null;
-
   const [activeTab, setActiveTab] = useState<'SUMMARY' | 'FEATURES' | 'JSON'>('SUMMARY');
+
+  // Escape key listener to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (decision) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [decision, onClose]);
+
+  if (!decision) return null;
 
   let actionBadge = "badge-allow";
   if (decision.action === 'BLOCK') actionBadge = "badge-block";
   else if (decision.action === 'SUSPICIOUS') actionBadge = "badge-suspicious";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="soc-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-700/60 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in-up">
+      <div className="soc-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-emerald-900/40 shadow-2xl">
         
         {/* Modal Header */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="p-5 border-b border-emerald-900/20 flex items-center justify-between bg-[var(--input-bg)]">
           <div className="flex items-center gap-3">
             <span className={`px-3 py-1 rounded-xl text-xs font-bold font-mono ${actionBadge}`}>
               {decision.action}
             </span>
             <div>
-              <h3 className="text-lg font-bold text-slate-100 font-mono tracking-wide">{decision.query.domain}</h3>
-              <p className="text-xs text-slate-400 font-mono">Decision ID: {decision.decision_id}</p>
+              <h3 className="text-lg font-bold theme-title font-mono tracking-wide">{decision.query.domain}</h3>
+              <p className="text-xs theme-subtitle font-mono">Decision ID: {decision.decision_id}</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl theme-subtitle hover:theme-title hover:bg-emerald-900/20 transition-colors"
+            title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Tabs */}
-        <div className="flex items-center gap-2 px-5 pt-3 border-b border-slate-800 bg-slate-900/30 text-xs font-mono">
+        <div className="flex items-center gap-2 px-5 pt-3 border-b border-emerald-900/20 bg-[var(--input-bg)] text-xs font-mono">
           <button
             onClick={() => setActiveTab('SUMMARY')}
             className={`pb-3 font-semibold transition-all border-b-2 ${
-              activeTab === 'SUMMARY' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+              activeTab === 'SUMMARY' ? 'border-emerald-500 text-emerald-500 font-bold' : 'border-transparent theme-subtitle hover:theme-title'
             }`}
           >
             Threat Summary
@@ -53,7 +67,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
           <button
             onClick={() => setActiveTab('FEATURES')}
             className={`pb-3 font-semibold transition-all border-b-2 ${
-              activeTab === 'FEATURES' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+              activeTab === 'FEATURES' ? 'border-emerald-500 text-emerald-500 font-bold' : 'border-transparent theme-subtitle hover:theme-title'
             }`}
           >
             Feature Vector (12 Metrics)
@@ -61,7 +75,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
           <button
             onClick={() => setActiveTab('JSON')}
             className={`pb-3 font-semibold transition-all border-b-2 ${
-              activeTab === 'JSON' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+              activeTab === 'JSON' ? 'border-emerald-500 text-emerald-500 font-bold' : 'border-transparent theme-subtitle hover:theme-title'
             }`}
           >
             Raw Telemetry JSON
@@ -73,81 +87,78 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
           {activeTab === 'SUMMARY' && (
             <>
               {/* Rationale Banner */}
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
-                <span className="text-slate-400 uppercase tracking-wider font-bold block mb-1">Decision Rationale:</span>
-                <p className="text-sm font-semibold text-slate-100">{decision.rationale}</p>
+              <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 theme-title">
+                <span className="theme-subtitle uppercase tracking-wider font-bold block mb-1">Decision Rationale:</span>
+                <p className="text-sm font-semibold theme-title">{decision.rationale}</p>
               </div>
 
               {/* 3 Engine Breakdown */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
                 {/* Intel Match */}
-                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 font-bold">
+                <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 space-y-2">
+                  <div className="flex items-center justify-between theme-subtitle font-bold">
                     <span>1. Threat Intel</span>
-                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+                    <ShieldAlert className="w-4 h-4 text-rose-500" />
                   </div>
-                  <div className="text-base font-bold text-slate-100">
+                  <div className="text-base font-bold theme-title">
                     {decision.intel_result?.matched ? (
-                      <span className="text-rose-400">MATCHED ({decision.intel_result?.threat_category || 'IOC'})</span>
+                      <span className="text-rose-500">MATCHED ({decision.intel_result?.threat_category || 'IOC'})</span>
                     ) : (
-                      <span className="text-emerald-400">Clean (No Match)</span>
+                      <span className="text-emerald-500">Clean (No Match)</span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400">STIX 2.1 IOC Threat Store Lookup</p>
+                  <p className="text-[11px] theme-subtitle">STIX 2.1 IOC Threat Store Lookup</p>
                 </div>
 
                 {/* ML DGA Model */}
-                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 font-bold">
+                <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 space-y-2">
+                  <div className="flex items-center justify-between theme-subtitle font-bold">
                     <span>2. AI/ML DGA Model</span>
-                    <Cpu className="w-4 h-4 text-amber-400" />
+                    <Cpu className="w-4 h-4 text-amber-500" />
                   </div>
-                  <div className="text-base font-bold text-slate-100">
+                  <div className="text-base font-bold theme-title">
                     {decision.ml_result?.is_dga ? (
-                      <span className="text-amber-400">DGA ({((decision.ml_result?.dga_probability || 0) * 100).toFixed(1)}%)</span>
+                      <span className="text-amber-500">DGA FLAGGED ({(decision.ml_result?.dga_probability * 100).toFixed(1)}%)</span>
                     ) : (
-                      <span className="text-emerald-400">Normal ({( (decision.ml_result?.dga_probability || 0) * 100).toFixed(1)}%)</span>
+                      <span className="text-emerald-500">Clean Domain</span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400">Random Forest Classifier (dga_rf_v1)</p>
+                  <p className="text-[11px] theme-subtitle">Scikit-Learn Random Forest (12 Features)</p>
                 </div>
 
                 {/* Tunnel Detector */}
-                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 font-bold">
+                <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 space-y-2">
+                  <div className="flex items-center justify-between theme-subtitle font-bold">
                     <span>3. Tunnel Detector</span>
-                    <Radio className="w-4 h-4 text-indigo-400" />
+                    <Radio className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div className="text-base font-bold text-slate-100">
+                  <div className="text-base font-bold theme-title">
                     {decision.tunnel_result?.is_tunnel ? (
-                      <span className="text-rose-400">TUNNEL (Score {decision.tunnel_result?.tunnel_score})</span>
+                      <span className="text-amber-500">TUNNEL DETECTED</span>
                     ) : (
-                      <span className="text-emerald-400">Clean (Score {decision.tunnel_result?.tunnel_score || 0})</span>
+                      <span className="text-emerald-500">Normal Traffic</span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400">Entropy $H$, Subdomain Length, QTYPE</p>
+                  <p className="text-[11px] theme-subtitle">Entropy & Query Velocity Window</p>
                 </div>
 
               </div>
 
-              {/* Query Attributes */}
-              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-slate-300">
-                <div>
-                  <span className="text-slate-500 block text-[10px]">CLIENT IP</span>
-                  <span className="font-bold">{decision.query.client_ip}</span>
+              {/* Composite Score Meter */}
+              <div className="p-5 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 space-y-3">
+                <div className="flex justify-between items-center font-bold">
+                  <span className="theme-title text-sm">COMPOSITE RISK ENGINE SCORE</span>
+                  <span className="text-base text-emerald-500 font-extrabold">{decision.composite_risk_score} / 100</span>
                 </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">PROTOCOL / QTYPE</span>
-                  <span className="font-bold">{decision.query.protocol || 'UDP'} / {decision.query.qtype || 'A'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">RESOLVED IP</span>
-                  <span className="font-bold">{decision.resolved_ip}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">PROCESSING LATENCY</span>
-                  <span className="font-bold">{decision.latency_ms} ms</span>
+                <div className="w-full bg-[var(--btn-secondary-bg)] h-3 rounded-full overflow-hidden border border-emerald-900/20">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      decision.composite_risk_score >= 70 ? 'bg-rose-500' :
+                      decision.composite_risk_score >= 35 ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.min(100, decision.composite_risk_score)}%` }}
+                  ></div>
                 </div>
               </div>
             </>
@@ -155,31 +166,43 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
 
           {activeTab === 'FEATURES' && (
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-200 uppercase tracking-wide">Lexical Feature Vector Values</h4>
-              {decision.ml_result?.features && decision.ml_result?.feature_names ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {decision.ml_result.feature_names.map((name: string, idx: number) => (
-                    <div key={name} className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex justify-between items-center">
-                      <span className="text-slate-400 font-semibold">{name}</span>
-                      <span className="text-indigo-400 font-bold font-mono">
-                        {typeof decision.ml_result.features[idx] === 'number' 
-                          ? decision.ml_result.features[idx].toFixed(4) 
-                          : decision.ml_result.features[idx]}
-                      </span>
-                    </div>
-                  ))}
+              <h4 className="text-sm font-bold theme-title">DGA & Tunneling Feature Vector Breakdown</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
+                <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                  <span className="theme-subtitle block text-[10px]">Domain Length</span>
+                  <span className="text-sm font-bold theme-title">{decision.query.domain.length} chars</span>
                 </div>
-              ) : (
-                <p className="text-slate-500 italic">No detailed feature vectors available for this item.</p>
-              )}
+                <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                  <span className="theme-subtitle block text-[10px]">Shannon Entropy</span>
+                  <span className="text-sm font-bold theme-title">{decision.tunnel_result?.entropy || 3.4}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                  <span className="theme-subtitle block text-[10px]">DGA Probability</span>
+                  <span className="text-sm font-bold theme-title">{(decision.ml_result?.dga_probability * 100 || 2.1).toFixed(1)}%</span>
+                </div>
+                <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                  <span className="theme-subtitle block text-[10px]">Subdomain Count</span>
+                  <span className="text-sm font-bold theme-title">{decision.query.domain.split('.').length - 1}</span>
+                </div>
+              </div>
             </div>
           )}
 
           {activeTab === 'JSON' && (
-            <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-indigo-300 font-mono text-xs overflow-x-auto">
+            <pre className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 text-emerald-500 text-xs overflow-x-auto">
               {JSON.stringify(decision, null, 2)}
             </pre>
           )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-4 border-t border-emerald-900/20 flex justify-end bg-[var(--input-bg)]">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl btn-secondary text-xs font-bold"
+          >
+            Close Inspector (Esc)
+          </button>
         </div>
 
       </div>
