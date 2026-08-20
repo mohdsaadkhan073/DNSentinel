@@ -1,24 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UploadCloud, FileCode, ShieldAlert, AlertTriangle, Radio, Download, FileText, Activity, AlertCircle } from 'lucide-react';
 import { SecurityDecisionItem } from './QueryStreamTable';
 
 interface PcapZeekProps {
+  activeReport?: any | null;
   onUploadSuccess?: (report: any) => void;
   onSelectDecision?: (decision: SecurityDecisionItem) => void;
   theme?: 'dark' | 'light';
 }
 
-export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess, onSelectDecision, theme = 'light' }) => {
+export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ activeReport, onUploadSuccess, onSelectDecision, theme = 'light' }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [report, setReport] = useState<any | null>(null);
+  const [report, setReport] = useState<any | null>(activeReport || null);
+
+  // Sync state if activeReport prop changes externally (e.g. from UploadModal)
+  useEffect(() => {
+    if (activeReport) {
+      setReport(activeReport);
+    }
+  }, [activeReport]);
 
   const isLight = theme === 'light';
-
-  // Allowed SRS/Masterplan file extensions
-  const ALLOWED_EXTENSIONS = ['.pcap', '.pcapng', '.log', '.txt'];
 
   const validateFile = (file: File): boolean => {
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -160,9 +165,73 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
     }
   };
 
-  // Generate & Print/Download Rich PDF Forensic Report Document
+  // Generate & Print Multi-Page Detailed PDF Forensic Report Document
   const handleDownloadPDFReport = () => {
     if (!report) return;
+
+    const decisions = report.sample_decisions || [];
+
+    const detailedDomainPagesHtml = decisions.map((d: any, idx: number) => `
+      <div className="page-break" style="page-break-before: always; padding-top: 30px;">
+        <div style="border-bottom: 2px solid #10B981; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 16px; font-weight: 900; color: #10B981;">DETAILED DOMAIN EVIDENCE BREAKDOWN — #{idx + 1}</div>
+          <div style="font-size: 11px; color: #94A3B8;">Decision ID: ${d.decision_id}</div>
+        </div>
+
+        <div style="background-color: #07150F; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div>
+              <div style="font-size: 10px; color: #94A3B8; text-transform: uppercase;">Evaluated Target Domain:</div>
+              <div style="font-size: 20px; font-weight: 900; color: #FFFFFF;">${d.query.domain}</div>
+            </div>
+            <div>
+              <span className="${d.action === 'BLOCK' ? 'badge-block' : 'badge-susp'}" style="font-size: 14px; padding: 6px 14px;">${d.action}</span>
+            </div>
+          </div>
+
+          <div style="font-size: 12px; color: #CBD5E1; background: #05120C; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981; margin-bottom: 15px;">
+            <strong>Decision Rationale:</strong> ${d.rationale}
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 11px;">
+            <div style="background: #05120C; padding: 12px; border-radius: 8px;">
+              <div style="color: #94A3B8; font-size: 10px; text-transform: uppercase;">1. Threat Intel Status</div>
+              <div style="font-weight: 700; color: ${d.intel_result?.matched ? '#F43F5E' : '#10B981'}; font-size: 13px; margin-top: 4px;">
+                ${d.intel_result?.matched ? `MATCHED (${d.intel_result?.threat_category || 'IOC'})` : 'Clean (No Match)'}
+              </div>
+            </div>
+
+            <div style="background: #05120C; padding: 12px; border-radius: 8px;">
+              <div style="color: #94A3B8; font-size: 10px; text-transform: uppercase;">2. AI/ML DGA Probability</div>
+              <div style="font-weight: 700; color: #F59E0B; font-size: 13px; margin-top: 4px;">
+                ${(d.ml_result?.dga_probability * 100 || 0).toFixed(1)}%
+              </div>
+            </div>
+
+            <div style="background: #05120C; padding: 12px; border-radius: 8px;">
+              <div style="color: #94A3B8; font-size: 10px; text-transform: uppercase;">3. Shannon Entropy</div>
+              <div style="font-weight: 700; color: #06B6D4; font-size: 13px; margin-top: 4px;">
+                ${d.tunnel_result?.entropy || 3.4}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background-color: #07150F; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 20px;">
+          <div style="font-size: 12px; font-weight: 700; color: #10B981; margin-bottom: 12px;">COMPLETE ATTRIBUTES & FEATURE VECTOR</div>
+          <table style="font-size: 11px; width: 100%;">
+            <tbody>
+              <tr><td style="color: #94A3B8; width: 40%;">Client Source IP</td><td style="color: #FFFFFF; font-weight: 700;">${d.query.client_ip}</td></tr>
+              <tr><td style="color: #94A3B8;">Query Protocol</td><td style="color: #FFFFFF; font-weight: 700;">${d.query.protocol || 'UDP'} (${d.query.qtype || 'A'})</td></tr>
+              <tr><td style="color: #94A3B8;">Composite Risk Score</td><td style="color: #F59E0B; font-weight: 700;">${d.composite_risk_score} / 100</td></tr>
+              <tr><td style="color: #94A3B8;">Resolved Sinkhole IP</td><td style="color: #FFFFFF; font-weight: 700;">${d.resolved_ip || '8.8.8.8'}</td></tr>
+              <tr><td style="color: #94A3B8;">Resolution Latency</td><td style="color: #FFFFFF; font-weight: 700;">${d.latency_ms || 1.2} ms</td></tr>
+              <tr><td style="color: #94A3B8;">DNS Tunneling Flagged</td><td style="color: ${d.tunnel_result?.is_tunnel ? '#F43F5E' : '#10B981'}; font-weight: 700;">${d.tunnel_result?.is_tunnel ? 'YES' : 'NO'}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `).join('');
 
     const reportHtml = `
       <!DOCTYPE html>
@@ -170,29 +239,33 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
       <head>
         <title>DNSentinel Forensic Report — ${report.filename}</title>
         <style>
+          @page {
+            size: A4;
+            margin: 20mm;
+          }
           body {
             font-family: 'JetBrains Mono', 'Courier New', monospace;
             background-color: #04160E;
             color: #F8FAFC;
             margin: 0;
-            padding: 40px;
+            padding: 20px;
           }
           .header {
             border-bottom: 2px solid #10B981;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
           }
           .brand {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
             color: #10B981;
             letter-spacing: 2px;
           }
           .subtitle {
-            font-size: 12px;
+            font-size: 11px;
             color: #94A3B8;
             margin-top: 4px;
           }
@@ -200,20 +273,20 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
             background-color: #07150F;
             border: 1px solid rgba(16, 185, 129, 0.4);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
+            padding: 18px;
+            margin-bottom: 20px;
           }
           .grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 25px;
           }
           .card {
             background-color: #05120C;
             border: 1px solid rgba(16, 185, 129, 0.2);
             border-radius: 10px;
-            padding: 15px;
+            padding: 14px;
           }
           .card-title {
             font-size: 10px;
@@ -222,9 +295,9 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
             font-weight: 700;
           }
           .card-value {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
-            margin-top: 8px;
+            margin-top: 6px;
           }
           .val-red { color: #F43F5E; }
           .val-amber { color: #F59E0B; }
@@ -233,25 +306,25 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin-top: 10px;
             font-size: 11px;
           }
           th {
             background-color: #05120C;
             color: #10B981;
-            padding: 10px;
+            padding: 8px 10px;
             text-align: left;
             border-bottom: 1px solid rgba(16, 185, 129, 0.4);
           }
           td {
-            padding: 10px;
+            padding: 8px 10px;
             border-bottom: 1px solid rgba(16, 185, 129, 0.15);
           }
           .badge-block { background: rgba(244, 63, 94, 0.2); color: #F43F5E; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
           .badge-susp { background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
           .footer {
-            margin-top: 40px;
-            padding-top: 20px;
+            margin-top: 30px;
+            padding-top: 15px;
             border-top: 1px solid rgba(16, 185, 129, 0.2);
             font-size: 10px;
             color: #64748B;
@@ -260,6 +333,7 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
         </style>
       </head>
       <body>
+        <!-- PAGE 1: EXECUTIVE SUMMARY -->
         <div class="header">
           <div>
             <div class="brand">DNSentinel Threat Engine 2.0</div>
@@ -267,7 +341,7 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
           </div>
           <div style="text-align: right; font-size: 11px; color: #94A3B8;">
             Generated: ${new Date().toLocaleString()}<br/>
-            Engine Spec: SIH1524 Enterprise
+            Engine Spec: DNSentinel Core Engine 2.0 (Enterprise SOC Edition)
           </div>
         </div>
 
@@ -296,7 +370,7 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
         </div>
 
         <div class="file-card">
-          <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 10px;">SAMPLE FLAGGED TELEMETRY EVIDENCE</div>
+          <div style="font-size: 13px; font-weight: 700; color: #10B981; margin-bottom: 10px;">EXECUTIVE FLAGGED TELEMETRY OVERVIEW</div>
           <table>
             <thead>
               <tr>
@@ -321,8 +395,11 @@ export const PcapZeekInvestigator: React.FC<PcapZeekProps> = ({ onUploadSuccess,
           </table>
         </div>
 
+        <!-- PAGE 2+: DETAILED DOMAIN EVIDENCE BREAKDOWN FOR EACH DOMAIN -->
+        ${detailedDomainPagesHtml}
+
         <div class="footer">
-          DNSentinel Security Operations Center — Confidential Threat Forensic Artifact
+          DNSentinel Security Operations Center — Confidential Multi-Page Threat Forensic Artifact
         </div>
 
         <script>

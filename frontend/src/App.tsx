@@ -176,12 +176,13 @@ export const App: React.FC = () => {
     } catch (err) {}
   };
 
-  // Forensic Upload Success Handler
+  // Forensic Upload Success Handler (Instantly switches to PCAP_ZEEK tab with full report)
   const handleUploadSuccess = (report: any) => {
     setForensicReport(report);
     if (report.sample_decisions && report.sample_decisions.length > 0) {
       setQueries((prev) => [...report.sample_decisions, ...prev].slice(0, 50));
     }
+    setActiveTab('PCAP_ZEEK'); // Switch tab automatically to show batch analysis results!
     fetchMetricsAndQueries();
   };
 
@@ -220,7 +221,7 @@ export const App: React.FC = () => {
         <main className="flex-1 p-6 space-y-6">
           
           {/* Forensic Report Notification Banner */}
-          {forensicReport && (
+          {forensicReport && activeTab !== 'PCAP_ZEEK' && (
             <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-section-fade">
               <div className="flex items-center gap-3">
                 <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">BATCH PROCESSED</span>
@@ -228,10 +229,10 @@ export const App: React.FC = () => {
                 <span className="opacity-75">({forensicReport.total_queries_analyzed} queries evaluated)</span>
               </div>
               <button 
-                onClick={() => setForensicReport(null)}
-                className="text-xs font-bold underline opacity-75 hover:opacity-100"
+                onClick={() => setActiveTab('PCAP_ZEEK')}
+                className="text-xs font-bold underline text-emerald-500 hover:text-emerald-400"
               >
-                Dismiss
+                View Forensic Report
               </button>
             </div>
           )}
@@ -261,6 +262,7 @@ export const App: React.FC = () => {
             {/* Dedicated PCAP / Zeek Investigation Module */}
             {activeTab === 'PCAP_ZEEK' && (
               <PcapZeekInvestigator
+                activeReport={forensicReport}
                 onUploadSuccess={handleUploadSuccess}
                 onSelectDecision={(decision) => setSelectedDecision(decision)}
                 theme={theme}
