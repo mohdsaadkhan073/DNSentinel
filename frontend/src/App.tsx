@@ -10,7 +10,7 @@ export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light'); // Light mode as primary default
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
@@ -173,7 +173,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row font-sans">
       
-      {/* Left Sidebar Section (Dark Emerald / Light Forest Sidebar) */}
+      {/* Left Sidebar Section */}
       <Sidebar
         wsConnected={wsConnected}
         activeTab={activeTab}

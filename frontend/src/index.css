@@ -8,33 +8,15 @@
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ================= DARK EMERALD COMMAND THEME ================= */
-[data-theme="dark"], body:not([data-theme="light"]) {
-  --bg-main: #030C08;
-  --bg-sidebar: #04160E;
-  --card-bg: rgba(6, 24, 16, 0.85);
-  --card-border: rgba(16, 185, 129, 0.15);
-  --card-hover-border: rgba(16, 185, 129, 0.45);
-  --card-hover-shadow: rgba(16, 185, 129, 0.2);
-  --text-primary: #F8FAFC;
-  --text-title: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --btn-secondary-bg: rgba(10, 35, 24, 0.85);
-  --input-bg: rgba(4, 22, 14, 0.8);
-  --table-head-bg: rgba(4, 22, 14, 0.85);
-  --table-row-hover: rgba(10, 35, 24, 0.6);
-  --donut-ring-bg: #161B22;
-}
-
-/* ================= LIGHT EMERALD ENTERPRISE THEME ================= */
-[data-theme="light"] {
+/* ================= LIGHT EMERALD ENTERPRISE THEME (PRIMARY DEFAULT) ================= */
+[data-theme="light"], body:not([data-theme="dark"]) {
   --bg-main: #F0F4F2;
-  --bg-sidebar: #011711; /* Ultra-deep dark emerald forest */
+  --bg-sidebar: #011711;
   --card-bg: rgba(255, 255, 255, 0.95);
   --card-border: rgba(4, 120, 87, 0.18);
-  --card-hover-border: rgba(16, 185, 129, 0.5);
-  --card-hover-shadow: rgba(4, 120, 87, 0.18);
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --card-hover-border: rgba(16, 185, 129, 0.6);
+  --card-hover-shadow: 0 14px 32px -4px rgba(4, 120, 87, 0.18);
   --text-primary: #0F172A;
   --text-title: #0F172A;
   --text-secondary: #334155;
@@ -44,6 +26,26 @@
   --table-head-bg: #F1F5F9;
   --table-row-hover: #ECFDF5;
   --donut-ring-bg: #E2E8F0;
+}
+
+/* ================= DARK EMERALD COMMAND THEME (MATTE SOLID NON-GLOWY) ================= */
+[data-theme="dark"] {
+  --bg-main: #030C08;
+  --bg-sidebar: #04160E;
+  --card-bg: #07150F;
+  --card-border: rgba(255, 255, 255, 0.12);
+  --card-shadow: none;
+  --card-hover-border: rgba(16, 185, 129, 0.45);
+  --card-hover-shadow: none;
+  --text-primary: #F8FAFC;
+  --text-title: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --btn-secondary-bg: #0C2117;
+  --input-bg: #05120C;
+  --table-head-bg: #05120C;
+  --table-row-hover: #0C2419;
+  --donut-ring-bg: #16241C;
 }
 
 body {
@@ -58,7 +60,7 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Dynamic Contrast Classes for Light vs Dark */
+/* Dynamic Contrast Classes */
 .theme-title {
   color: var(--text-title) !important;
 }
@@ -71,21 +73,19 @@ body {
   color: var(--text-muted) !important;
 }
 
-/* Glassmorphism Surfaces */
+/* Section Cards */
 .soc-card {
   background: var(--card-bg) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
   border: 1px solid var(--card-border) !important;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  box-shadow: var(--card-shadow) !important;
   border-radius: 1rem !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: all 0.25s ease-in-out !important;
 }
 
-/* Radiant Emerald Glass Glow on Hover */
+/* Card Hover */
 .soc-card:hover, .soc-card-hover:hover {
   border-color: var(--card-hover-border) !important;
-  box-shadow: 0 12px 40px -10px var(--card-hover-shadow), inset 0 0 20px rgba(16, 185, 129, 0.05) !important;
+  box-shadow: var(--card-hover-shadow) !important;
   transform: translateY(-2px);
 }
 
@@ -108,18 +108,18 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
-/* Emerald Primary Action Button */
+/* Clean Solid Emerald Primary Action Button (Zero Glow) */
 .btn-emerald-primary {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  background: #059669;
   color: #FFFFFF;
   font-weight: 700;
-  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+  box-shadow: none !important;
   transition: all 0.2s ease;
 }
 
 .btn-emerald-primary:hover {
-  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
-  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
+  background: #10B981;
+  box-shadow: none !important;
   transform: translateY(-1px);
 }
 
@@ -127,6 +127,7 @@ body {
   background: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
   color: var(--text-primary);
+  box-shadow: none !important;
   transition: all 0.2s ease;
 }
 
