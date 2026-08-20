@@ -38,6 +38,9 @@ WEIGHT_ML_DGA = 0.40
 WEIGHT_TUNNEL = 0.35
 WEIGHT_BEHAVIOR = 0.25
 
+# Detection Performance SLAs
+DETECTION_TIMEOUT_SEC = float(os.getenv("DETECTION_TIMEOUT_SEC", "0.025"))
+
 # Database & File Paths
 SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "dnsentinel_telemetry.db")
 ML_MODEL_PATH = os.getenv("ML_MODEL_PATH", "ml/dga_rf_v1.pkl")
