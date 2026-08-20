@@ -191,3 +191,137 @@ def test_sqlite_db_no_seeding_when_not_empty(test_db_path):
     assert store.lookup("custom1.com").matched is True
     assert store.lookup("synth-command-node-1.com").matched is False
 
+from threat_intel.stix_parser import STIXParser
+
+def test_stix_parser_valid_bundle():
+    valid_stix = """
+    {
+        "type": "bundle",
+        "id": "bundle--1",
+        "objects": [
+            {
+                "type": "indicator",
+                "id": "indicator--1",
+                "created": "2026-08-20T12:00:00.000Z",
+                "created_by_ref": "feed-a",
+                "name": "Malicious Command & Control",
+                "description": "Known malware C2 domain detected",
+                "indicator_types": ["malicious-activity", "c2"],
+                "pattern": "[domain-name:value = 'bad-c2-stix.com']",
+                "pattern_type": "stix",
+                "confidence": 95
+            }
+        ]
+    }
+    """
+    iocs = STIXParser.parse_stix_json(valid_stix)
+    assert len(iocs) == 1
+    ioc = iocs[0]
+    assert ioc["domain"] == "bad-c2-stix.com"
+    assert ioc["category"] == "Command & Control (C2)"
+    assert ioc["confidence"] == 95.0
+    assert ioc["source"] == "feed-a"
+    assert ioc["details"] == "Known malware C2 domain detected"
+    assert ioc["timestamp"] == "2026-08-20T12:00:00.000Z"
+
+def test_stix_parser_multiple_indicators():
+    valid_stix = """
+    {
+        "type": "bundle",
+        "objects": [
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'domain1.com']",
+                "indicator_types": ["phishing"],
+                "confidence": 90
+            },
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value IN ('domain2.net', 'domain3.org')]",
+                "indicator_types": ["malicious-activity"],
+                "confidence": 75
+            }
+        ]
+    }
+    """
+    iocs = STIXParser.parse_stix_json(valid_stix)
+    assert len(iocs) == 3
+    domains = [ioc["domain"] for ioc in iocs]
+    assert "domain1.com" in domains
+    assert "domain2.net" in domains
+    assert "domain3.org" in domains
+    
+    phish_ioc = next(ioc for ioc in iocs if ioc["domain"] == "domain1.com")
+    assert phish_ioc["category"] == "Phishing"
+
+def test_stix_parser_normalization():
+    stix = """
+    {
+        "type": "bundle",
+        "objects": [
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'https://EVIL-STIX.net:8443/']",
+                "confidence": 85
+            }
+        ]
+    }
+    """
+    iocs = STIXParser.parse_stix_json(stix)
+    assert len(iocs) == 1
+    assert iocs[0]["domain"] == "evil-stix.net"
+
+def test_stix_parser_unsupported_types():
+    stix = """
+    {
+        "type": "bundle",
+        "objects": [
+            {
+                "type": "threat-actor",
+                "name": "Actor A"
+            },
+            {
+                "type": "indicator",
+                "pattern": "[ipv4-addr:value = '192.168.1.100']"
+            },
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'good-domain.com']",
+                "confidence": 70
+            }
+        ]
+    }
+    """
+    iocs = STIXParser.parse_stix_json(stix)
+    assert len(iocs) == 1
+    assert iocs[0]["domain"] == "good-domain.com"
+
+def test_stix_parser_malformed_input():
+    assert STIXParser.parse_stix_json("invalid json string{") == []
+    assert STIXParser.parse_stix_json("") == []
+    assert STIXParser.parse_stix_json(None) == []
+
+def test_stix_parser_duplicate_indicators():
+    stix = """
+    {
+        "type": "bundle",
+        "objects": [
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'dup-domain.com']",
+                "confidence": 70
+            },
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'dup-domain.com']",
+                "confidence": 92
+            }
+        ]
+    }
+    """
+    iocs = STIXParser.parse_stix_json(stix)
+    assert len(iocs) == 1
+    assert iocs[0]["domain"] == "dup-domain.com"
+    assert iocs[0]["confidence"] == 92.0
+
+
