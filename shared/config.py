@@ -23,6 +23,8 @@ FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", "8000"))
 DNS_UDP_PORT = int(os.getenv("DNS_UDP_PORT", "53"))
 DNS_DOH_PORT = int(os.getenv("DNS_DOH_PORT", "8443"))
 DNS_DTLS_PORT = int(os.getenv("DNS_DTLS_PORT", "853"))
+DTLS_CERT_PATH = os.getenv("DTLS_CERT_PATH", "certs/server.crt")
+DTLS_KEY_PATH = os.getenv("DTLS_KEY_PATH", "certs/server.key")
 
 # Upstream Resolver
 UPSTREAM_DNS_PRIMARY = os.getenv("UPSTREAM_DNS_PRIMARY", "8.8.8.8")
