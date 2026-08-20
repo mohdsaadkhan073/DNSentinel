@@ -225,6 +225,12 @@ class ResolverMetrics:
                 "uptime_seconds": round(elapsed_sec, 2),
             }
 
+    def summary(self) -> Dict[str, Any]:
+        """
+        Alias for snapshot() to return complete metrics dictionary.
+        """
+        return self.snapshot()
+
     def to_metrics_summary(self) -> MetricsSummary:
         """
         Exports metrics conforming strictly to shared.schemas.MetricsSummary.
