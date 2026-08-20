@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { MetricCards } from './components/MetricCards';
 import { ThreatCharts } from './components/ThreatCharts';
 import { QueryStreamTable, SecurityDecisionItem } from './components/QueryStreamTable';
+import { DomainInspector } from './components/DomainInspector';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
 
@@ -17,6 +18,10 @@ export const App: React.FC = () => {
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
+
+  // Persistent Domain Inspector Search State across Tab Navigation
+  const [lastInspectedDomain, setLastInspectedDomain] = useState<string>('');
+  const [lastInspectedResult, setLastInspectedResult] = useState<SecurityDecisionItem | null>(null);
 
   // Sync theme with body data-theme attribute
   useEffect(() => {
@@ -210,7 +215,7 @@ export const App: React.FC = () => {
           setGlobalSearch={setGlobalSearch}
         />
 
-        {/* Padded Workspace Area with Smooth Dynamic Tab Fade-In */}
+        {/* Padded Workspace Area */}
         <main className="flex-1 p-6 space-y-6">
           
           {/* Forensic Report Notification Banner */}
@@ -233,16 +238,32 @@ export const App: React.FC = () => {
           {/* Smooth Dynamic View Container keyed on activeTab */}
           <div key={`view-${activeTab}`} className="animate-section-fade space-y-6">
             
-            {/* 5 Core Metric Cards */}
-            <MetricCards summary={metrics} />
+            {/* 5 Core Metric Cards (Hidden on Live DNS and Domain Inspector) */}
+            {activeTab !== 'LIVE_DNS' && activeTab !== 'DOMAIN_INSPECTOR' && (
+              <MetricCards summary={metrics} />
+            )}
+
+            {/* Persistent Domain Inspector Search State across Navigation */}
+            {activeTab === 'DOMAIN_INSPECTOR' && (
+              <DomainInspector 
+                lastDomain={lastInspectedDomain}
+                lastResult={lastInspectedResult}
+                onDomainAnalyzed={(domain, result) => {
+                  setLastInspectedDomain(domain);
+                  setLastInspectedResult(result);
+                }}
+                onSelectDecision={(decision) => setSelectedDecision(decision)}
+                theme={theme}
+              />
+            )}
 
             {/* Donut & Area Threat Charts */}
             {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
               <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
             )}
 
-            {/* Live Stream Table / Domain Inspector / Source IPs / PCAP View */}
-            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'DOMAIN_INSPECTOR' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
+            {/* Live Stream Table (Hidden on Domain Inspector) */}
+            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
               <QueryStreamTable
                 queries={queries}
                 onSelectDecision={(decision) => setSelectedDecision(decision)}
