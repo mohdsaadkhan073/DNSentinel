@@ -20,6 +20,9 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Virtual Environments
 .venv/
@@ -29,20 +32,20 @@ env/
 env.bak/
 venv.bak/
 
-# Environment & Config
+# Environment & Config Secrets
 .env
 .env.local
 .env.*.local
 *.log
 
-# Databases & Runtime State
+# Databases & Local Runtime Telemetry State
 *.db
 *.sqlite
 *.sqlite3
-*.pcap
-*.tsv
+*.log
 
 # Node / React Frontend
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.cache/
@@ -51,17 +54,18 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/.pnpm-debug.log*
 
-# IDE & OS Files
+# IDE & Operating System Junk
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
+*.tmp
+scratch/
 
 # TLS/DTLS Certificates & Private Keys
 certs/
 *.crt
 *.key
 *.pem
-
