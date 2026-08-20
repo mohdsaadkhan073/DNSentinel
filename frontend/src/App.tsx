@@ -5,6 +5,7 @@ import { MetricCards } from './components/MetricCards';
 import { ThreatCharts } from './components/ThreatCharts';
 import { QueryStreamTable, SecurityDecisionItem } from './components/QueryStreamTable';
 import { DomainInspector } from './components/DomainInspector';
+import { ThreatAnalytics } from './components/ThreatAnalytics';
 import { PcapZeekInvestigator } from './components/PcapZeekInvestigator';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
@@ -176,13 +177,13 @@ export const App: React.FC = () => {
     } catch (err) {}
   };
 
-  // Forensic Upload Success Handler (Instantly switches to PCAP_ZEEK tab with full report)
+  // Forensic Upload Success Handler
   const handleUploadSuccess = (report: any) => {
     setForensicReport(report);
     if (report.sample_decisions && report.sample_decisions.length > 0) {
       setQueries((prev) => [...report.sample_decisions, ...prev].slice(0, 50));
     }
-    setActiveTab('PCAP_ZEEK'); // Switch tab automatically to show batch analysis results!
+    setActiveTab('PCAP_ZEEK');
     fetchMetricsAndQueries();
   };
 
@@ -219,29 +220,12 @@ export const App: React.FC = () => {
 
         {/* Padded Workspace Area */}
         <main className="flex-1 p-6 space-y-6">
-          
-          {/* Forensic Report Notification Banner */}
-          {forensicReport && activeTab !== 'PCAP_ZEEK' && (
-            <div className="soc-card rounded-xl p-4 border-l-4 border-l-emerald-500 flex items-center justify-between font-mono text-xs animate-section-fade">
-              <div className="flex items-center gap-3">
-                <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">BATCH PROCESSED</span>
-                <span className="font-semibold">{forensicReport.filename}</span>
-                <span className="opacity-75">({forensicReport.total_queries_analyzed} queries evaluated)</span>
-              </div>
-              <button 
-                onClick={() => setActiveTab('PCAP_ZEEK')}
-                className="text-xs font-bold underline text-emerald-500 hover:text-emerald-400"
-              >
-                View Forensic Report
-              </button>
-            </div>
-          )}
 
           {/* Smooth Dynamic View Container keyed on activeTab */}
           <div key={`view-${activeTab}`} className="animate-section-fade space-y-6">
             
-            {/* 5 Core Metric Cards (Hidden on Live DNS, Domain Inspector, PCAP/Zeek) */}
-            {activeTab !== 'LIVE_DNS' && activeTab !== 'DOMAIN_INSPECTOR' && activeTab !== 'PCAP_ZEEK' && (
+            {/* 5 Core Metric Cards (Displayed ONLY on DASHBOARD) */}
+            {activeTab === 'DASHBOARD' && (
               <MetricCards summary={metrics} />
             )}
 
@@ -259,6 +243,14 @@ export const App: React.FC = () => {
               />
             )}
 
+            {/* Dedicated Threat Analytics Workspace */}
+            {activeTab === 'ANALYTICS' && (
+              <ThreatAnalytics
+                summary={metrics}
+                theme={theme}
+              />
+            )}
+
             {/* Dedicated PCAP / Zeek Investigation Module */}
             {activeTab === 'PCAP_ZEEK' && (
               <PcapZeekInvestigator
@@ -269,12 +261,12 @@ export const App: React.FC = () => {
               />
             )}
 
-            {/* Donut & Area Threat Charts */}
-            {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
+            {/* Donut & Area Threat Charts (Dashboard View) */}
+            {activeTab === 'DASHBOARD' && (
               <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
             )}
 
-            {/* Live Stream Table (Hidden on Domain Inspector and PCAP/Zeek) */}
+            {/* Live Stream Table (Displayed on DASHBOARD, LIVE_DNS, SOURCE_IPS) */}
             {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'SOURCE_IPS') && (
               <QueryStreamTable
                 queries={queries}
