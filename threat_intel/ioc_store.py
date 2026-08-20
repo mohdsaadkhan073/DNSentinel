@@ -1,6 +1,7 @@
 import time
 from typing import Dict, Any, Optional
 from shared.schemas import ThreatIntelResult
+from threat_intel.threat_db import ThreatDB
 
 def normalize_domain(domain: str) -> str:
     """
@@ -40,40 +41,16 @@ class IOCStore:
     Owned by Member 3 (Threat Intel Lead).
     """
 
-    def __init__(self):
-        # Default in-memory store for Phase 1 (to be integrated with SQLite in Phase 2)
-        self._store: Dict[str, Dict[str, Any]] = {
-            "bad-c2.com": {
-                "category": "Command & Control (C2)",
-                "confidence": 100.0,
-                "source": "STIX/TAXII 2.1 Feeds",
-                "details": "Direct match in IOC blacklist database for bad-c2.com."
-            },
-            "malware-command-center.org": {
-                "category": "Malware Host",
-                "confidence": 100.0,
-                "source": "STIX/TAXII 2.1 Feeds",
-                "details": "Direct match in IOC blacklist database for malware-command-center.org."
-            },
-            "phishing-login-secure.net": {
-                "category": "Phishing",
-                "confidence": 100.0,
-                "source": "STIX/TAXII 2.1 Feeds",
-                "details": "Direct match in IOC blacklist database for phishing-login-secure.net."
-            },
-            "evil-tracker.info": {
-                "category": "Spyware",
-                "confidence": 100.0,
-                "source": "STIX/TAXII 2.1 Feeds",
-                "details": "Direct match in IOC blacklist database for evil-tracker.info."
-            },
-            "botnet-c2-node.xyz": {
-                "category": "Botnet",
-                "confidence": 100.0,
-                "source": "STIX/TAXII 2.1 Feeds",
-                "details": "Direct match in IOC blacklist database for botnet-c2-node.xyz."
-            }
-        }
+    def __init__(self, db_path: str = "threat_intelligence.db"):
+        self.db = ThreatDB(db_path)
+        self.db.seed_database_if_empty()
+        
+        # Measure only the disk-to-memory population stage (offline startup benchmark)
+        start_time = time.perf_counter()
+        self._store: Dict[str, Dict[str, Any]] = self.db.load_all_iocs()
+        load_time_ms = (time.perf_counter() - start_time) * 1000.0
+        
+        print(f"[IOCStore] Initialized: loaded {len(self._store)} IOCs in {load_time_ms:.2f}ms.")
 
     def lookup(self, domain: str) -> ThreatIntelResult:
         """
@@ -91,15 +68,17 @@ class IOCStore:
             current = ".".join(parts[i:])
             if current in self._store:
                 entry = self._store[current]
+                parent_details = entry.get("details", "")
+                details_str = f"Match found (parent block: {current}). Base details: {parent_details}" if current != normalized else parent_details
                 return ThreatIntelResult(
                     matched=True,
                     threat_category=entry.get("category", "Command & Control (C2)"),
                     intel_score=entry.get("confidence", 100.0),
                     source_feed=entry.get("source", "STIX/TAXII Feed"),
-                    details=entry.get("details", f"Match found (parent block: {current})")
+                    details=details_str
                 )
 
-        # Finally, check the last single label (or if it's the exact key checked above)
+        # Finally, check the last single label
         if normalized in self._store:
             entry = self._store[normalized]
             return ThreatIntelResult(
@@ -120,7 +99,7 @@ class IOCStore:
 
     def add_ioc(self, domain: str, category: str = "Malicious Domain", confidence: float = 100.0, source: str = "STIX/TAXII 2.1 Feeds", details: str = "Added via API"):
         """
-        Dynamically add an IOC to the in-memory store.
+        Dynamically add an IOC to the in-memory store and persist it in the SQLite DB.
         """
         d = normalize_domain(domain)
         if d:
@@ -130,6 +109,8 @@ class IOCStore:
                 "source": source,
                 "details": details
             }
+            # Persist to local database
+            self.db.add_iocs_batch([(d, category, confidence, source, details)])
 
     def total_iocs(self) -> int:
         """

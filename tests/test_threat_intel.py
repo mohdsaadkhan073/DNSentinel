@@ -1,6 +1,24 @@
+import os
+import time
 import pytest
 from threat_intel.ioc_store import IOCStore, normalize_domain
+from threat_intel.threat_db import ThreatDB
 from shared.schemas import ThreatIntelResult
+
+@pytest.fixture
+def test_db_path():
+    path = "test_threat_intelligence.db"
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    yield path
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 def test_domain_normalization():
     # Test cases for lowercase
@@ -19,8 +37,8 @@ def test_domain_normalization():
     assert normalize_domain("") == ""
     assert normalize_domain(None) == ""
 
-def test_ioc_store_lookup_exact():
-    store = IOCStore()
+def test_ioc_store_lookup_exact(test_db_path):
+    store = IOCStore(db_path=test_db_path)
     
     # Check default IOCs
     res1 = store.lookup("bad-c2.com")
@@ -37,8 +55,8 @@ def test_ioc_store_lookup_exact():
     assert res3.matched is False
     assert res3.intel_score == 0.0
 
-def test_ioc_store_lookup_parent():
-    store = IOCStore()
+def test_ioc_store_lookup_parent(test_db_path):
+    store = IOCStore(db_path=test_db_path)
     
     # Subdomain of default IOC
     res1 = store.lookup("sub.bad-c2.com")
@@ -54,13 +72,13 @@ def test_ioc_store_lookup_parent():
     res3 = store.lookup("notbad-c2.com")
     assert res3.matched is False
 
-def test_ioc_store_check_domain_alias():
-    store = IOCStore()
+def test_ioc_store_check_domain_alias(test_db_path):
+    store = IOCStore(db_path=test_db_path)
     res = store.check_domain("bad-c2.com")
     assert res.matched is True
 
-def test_ioc_store_add_ioc():
-    store = IOCStore()
+def test_ioc_store_add_ioc(test_db_path):
+    store = IOCStore(db_path=test_db_path)
     initial_count = store.total_iocs()
     
     # Add a custom IOC
@@ -85,3 +103,91 @@ def test_ioc_store_add_ioc():
     res_sub = store.lookup("login.new-malicious-site.net")
     assert res_sub.matched is True
     assert res_sub.intel_score == 85.0
+
+def test_sqlite_db_seeding_and_performance(test_db_path):
+    # 1. Initialize store with test db (triggers tables & seeding)
+    store = IOCStore(db_path=test_db_path)
+    total_loaded = store.total_iocs()
+    assert total_loaded >= 50000
+    
+    # 2. Benchmark pre-seeded startup load time (simulating production reboot)
+    start = time.perf_counter()
+    store_second_boot = IOCStore(db_path=test_db_path)
+    load_time_ms = (time.perf_counter() - start) * 1000.0
+    
+    # Verify startup load time is well under 200ms
+    assert load_time_ms < 200.0
+    
+    # 3. Verify defaults are loaded and check exact lookup
+    res_default = store_second_boot.lookup("bad-c2.com")
+    assert res_default.matched is True
+    assert res_default.threat_category == "Command & Control (C2)"
+    
+    # 4. Verify synthetic/demo indicators match requirements
+    db = ThreatDB(test_db_path)
+    iocs = db.load_all_iocs()
+    
+    synth_domains = [d for d in iocs.keys() if d.startswith("synth-")]
+    assert len(synth_domains) > 0
+    sample_domain = synth_domains[0]
+    
+    res_sample = store_second_boot.lookup(sample_domain)
+    assert res_sample.matched is True
+    assert res_sample.source_feed == "demo_seed"
+    assert res_sample.details == "Synthetic development/demo IOC"
+
+def test_feed_health_tracking(test_db_path):
+    db = ThreatDB(test_db_path)
+    
+    # Initial status is empty
+    health = db.get_feed_health()
+    assert len(health) == 0
+    
+    # Update health info
+    db.update_feed_health(
+        feed_name="Abuse.ch URLhaus",
+        status="SUCCESS",
+        count=150,
+        error_msg=None,
+        latency_ms=250.5
+    )
+    
+    health = db.get_feed_health()
+    assert len(health) == 1
+    assert health[0]["feed_name"] == "Abuse.ch URLhaus"
+    assert health[0]["status"] == "SUCCESS"
+    assert health[0]["indicator_count"] == 150
+    assert health[0]["error_message"] is None
+    assert health[0]["latency_ms"] == 250.5
+    
+    # Update with failure health info
+    db.update_feed_health(
+        feed_name="Abuse.ch URLhaus",
+        status="FAILED",
+        count=0,
+        error_msg="Connection Timeout",
+        latency_ms=5000.0
+    )
+    
+    health = db.get_feed_health()
+    assert len(health) == 1  # Replaced because feed_name is PRIMARY KEY
+    assert health[0]["status"] == "FAILED"
+    assert health[0]["error_message"] == "Connection Timeout"
+    assert health[0]["indicator_count"] == 0
+
+def test_sqlite_db_no_seeding_when_not_empty(test_db_path):
+    # Create database and populate manually with 2 entries
+    db = ThreatDB(test_db_path)
+    db.add_iocs_batch([
+        ("custom1.com", "Malware Host", 90.0, "real_feed", "Real threat intel"),
+        ("custom2.com", "Phishing", 95.0, "real_feed", "Real threat intel")
+    ])
+    
+    # Initialize the store which checks if database is empty to seed it
+    store = IOCStore(db_path=test_db_path)
+    
+    # Check that count remains exactly 2 (no synthetic data was seeded)
+    assert store.total_iocs() == 2
+    assert store.lookup("custom1.com").matched is True
+    assert store.lookup("synth-command-node-1.com").matched is False
+
