@@ -5,6 +5,7 @@ import { MetricCards } from './components/MetricCards';
 import { ThreatCharts } from './components/ThreatCharts';
 import { QueryStreamTable, SecurityDecisionItem } from './components/QueryStreamTable';
 import { DomainInspector } from './components/DomainInspector';
+import { PcapZeekInvestigator } from './components/PcapZeekInvestigator';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
 
@@ -238,8 +239,8 @@ export const App: React.FC = () => {
           {/* Smooth Dynamic View Container keyed on activeTab */}
           <div key={`view-${activeTab}`} className="animate-section-fade space-y-6">
             
-            {/* 5 Core Metric Cards (Hidden on Live DNS and Domain Inspector) */}
-            {activeTab !== 'LIVE_DNS' && activeTab !== 'DOMAIN_INSPECTOR' && (
+            {/* 5 Core Metric Cards (Hidden on Live DNS, Domain Inspector, PCAP/Zeek) */}
+            {activeTab !== 'LIVE_DNS' && activeTab !== 'DOMAIN_INSPECTOR' && activeTab !== 'PCAP_ZEEK' && (
               <MetricCards summary={metrics} />
             )}
 
@@ -257,13 +258,22 @@ export const App: React.FC = () => {
               />
             )}
 
+            {/* Dedicated PCAP / Zeek Investigation Module */}
+            {activeTab === 'PCAP_ZEEK' && (
+              <PcapZeekInvestigator
+                onUploadSuccess={handleUploadSuccess}
+                onSelectDecision={(decision) => setSelectedDecision(decision)}
+                theme={theme}
+              />
+            )}
+
             {/* Donut & Area Threat Charts */}
             {(activeTab === 'DASHBOARD' || activeTab === 'ANALYTICS') && (
               <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
             )}
 
-            {/* Live Stream Table (Hidden on Domain Inspector) */}
-            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
+            {/* Live Stream Table (Hidden on Domain Inspector and PCAP/Zeek) */}
+            {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'SOURCE_IPS') && (
               <QueryStreamTable
                 queries={queries}
                 onSelectDecision={(decision) => setSelectedDecision(decision)}
