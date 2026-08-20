@@ -90,7 +90,7 @@ class Orchestrator:
             rationale=rationale
         )
 
-        if action == ActionDecision.ALLOW and self.dns_cache:
+        if self.dns_cache:
             self.dns_cache.set(query.domain, decision)
 
         return decision
@@ -166,7 +166,7 @@ class Orchestrator:
             rationale=rationale
         )
 
-        if action == ActionDecision.ALLOW and self.dns_cache:
+        if self.dns_cache:
             self.dns_cache.set(query.domain, decision)
 
         return decision
