@@ -1,5 +1,6 @@
 import os
 import time
+import requests
 import pytest
 from threat_intel.ioc_store import IOCStore, normalize_domain
 from threat_intel.threat_db import ThreatDB
@@ -454,6 +455,233 @@ def test_aggregator_store_sync_and_health(test_db_path):
     assert feed_b_health["status"] == "FAILED"
     assert feed_b_health["error_message"] == "HTTP 500 Server Error"
     assert feed_b_health["latency_ms"] == 3200.0
+
+from unittest.mock import patch, MagicMock
+from threat_intel.taxii_client import TAXIIClient
+
+def test_taxii_client_init():
+    # 1. TAXII client initialization
+    client = TAXIIClient(
+        server_url="https://test-taxii.org",
+        api_root_path="custom-root",
+        collection_id="coll-123",
+        username="admin",
+        password="password123",
+        timeout=15
+    )
+    assert client.server_url == "https://test-taxii.org"
+    assert client.api_root_path == "/custom-root"
+    assert client.collection_id == "coll-123"
+    assert client.auth == ("admin", "password123")
+    assert client.timeout == 15
+
+@patch("requests.get")
+def test_taxii_client_discovery(mock_get):
+    # 2. server/API discovery
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"api_roots": ["https://test-taxii.org/stix/"]}
+    mock_get.return_value = mock_response
+    
+    client = TAXIIClient(server_url="https://test-taxii.org")
+    roots = client.discover_api_roots()
+    
+    assert roots == ["https://test-taxii.org/stix/"]
+    mock_get.assert_called_once_with(
+        "https://test-taxii.org/taxii2/", 
+        headers=client.headers, 
+        auth=None, 
+        timeout=10
+    )
+
+@patch("requests.get")
+def test_taxii_client_get_collections(mock_get):
+    # 3. collection discovery
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "collections": [
+            {"id": "coll-1", "title": "Collection 1"},
+            {"id": "coll-2", "title": "Collection 2"}
+        ]
+    }
+    mock_get.return_value = mock_response
+    
+    client = TAXIIClient()
+    collections = client.get_collections("https://test-taxii.org/stix/")
+    
+    assert len(collections) == 2
+    assert collections[0]["id"] == "coll-1"
+    assert collections[1]["title"] == "Collection 2"
+
+@patch("requests.get")
+def test_taxii_client_fetch_objects(mock_get):
+    # 4. successful object retrieval
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "type": "bundle",
+        "objects": [
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'bad-c2.com']",
+                "confidence": 90
+            }
+        ]
+    }
+    mock_get.return_value = mock_response
+    
+    client = TAXIIClient()
+    bundle = client.fetch_collection_objects("https://test-taxii.org/stix/", "coll-123")
+    
+    assert bundle["type"] == "bundle"
+    assert len(bundle["objects"]) == 1
+    assert "bad-c2.com" in bundle["objects"][0]["pattern"]
+
+@patch("requests.get")
+def test_taxii_client_pagination(mock_get):
+    # 5. pagination
+    def mock_get_side_effect(url, params=None, headers=None, auth=None, timeout=None):
+        range_header = headers.get("Range", "")
+        response = MagicMock()
+        response.status_code = 200
+        
+        if "items 0-99" in range_header:
+            response.json.return_value = {
+                "type": "bundle",
+                "objects": [{"type": "indicator", "pattern": f"[domain-name:value = 'domain-{i}.com']"} for i in range(100)]
+            }
+        elif "items 100-199" in range_header:
+            response.json.return_value = {
+                "type": "bundle",
+                "objects": [{"type": "indicator", "pattern": f"[domain-name:value = 'domain-{i}.com']"} for i in range(100, 105)]
+            }
+        else:
+            response.json.return_value = {"type": "bundle", "objects": []}
+            
+        return response
+
+    mock_get.side_effect = mock_get_side_effect
+    client = TAXIIClient(collection_id="coll-pagination")
+    
+    parsed, status = client.poll_and_parse_feed()
+    
+    assert status["status"] == "SUCCESS"
+    assert status["count"] == 105
+    assert len(parsed) == 105
+    assert parsed[0]["domain"] == "domain-0.com"
+    assert parsed[104]["domain"] == "domain-104.com"
+    assert mock_get.call_count == 2
+
+@patch("requests.get")
+def test_taxii_client_auth_failure(mock_get):
+    # 6. authentication failure
+    mock_response = MagicMock()
+    mock_response.status_code = 401
+    http_error = requests.exceptions.HTTPError("Unauthorized", response=mock_response)
+    mock_get.side_effect = http_error
+    
+    client = TAXIIClient()
+    with pytest.raises(PermissionError):
+        client.discover_api_roots()
+
+@patch("requests.get")
+def test_taxii_client_connection_failure(mock_get):
+    # 7. connection failure
+    mock_get.side_effect = requests.exceptions.ConnectionError("Network Down")
+    
+    client = TAXIIClient()
+    with pytest.raises(ConnectionError):
+        client.discover_api_roots()
+
+@patch("requests.get")
+def test_taxii_client_timeout(mock_get):
+    # 8. timeout
+    mock_get.side_effect = requests.exceptions.Timeout("Request Timeout")
+    
+    client = TAXIIClient()
+    with pytest.raises(ConnectionError):
+        client.discover_api_roots()
+
+@patch("requests.get")
+def test_taxii_client_malformed_response(mock_get):
+    # 9. malformed response
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.side_effect = ValueError("Invalid JSON")
+    mock_get.return_value = mock_response
+    
+    client = TAXIIClient(collection_id="coll-malformed")
+    parsed, status = client.poll_and_parse_feed()
+    
+    assert status["status"] == "FAILED"
+    assert "Invalid JSON" in status["error_message"]
+    assert parsed == []
+
+@patch("requests.get")
+def test_taxii_client_empty_feed(mock_get):
+    # 10. empty feed
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"type": "bundle", "objects": []}
+    mock_get.return_value = mock_response
+    
+    client = TAXIIClient(collection_id="coll-empty")
+    parsed, status = client.poll_and_parse_feed()
+    
+    assert status["status"] == "SUCCESS"
+    assert status["count"] == 0
+    assert parsed == []
+
+@patch("requests.get")
+def test_taxii_client_successful_update_and_integration(mock_get, test_db_path):
+    # 11, 12, 13, 14, 15: update handling, duplicate handling, parser/aggregator integration & health logging
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "type": "bundle",
+        "objects": [
+            {
+                "type": "indicator",
+                "name": "C2 Server",
+                "description": "TAXII feed threat",
+                "indicator_types": ["c2-activity"],
+                "pattern": "[domain-name:value = 'taxii-malicious.org']",
+                "confidence": 88
+            },
+            {
+                "type": "indicator",
+                "pattern": "[domain-name:value = 'taxii-malicious.org']",
+                "confidence": 70
+            }
+        ]
+    }
+    mock_get.return_value = mock_response
+    
+    store = IOCStore(db_path=test_db_path)
+    aggregator = ThreatAggregator(store)
+    client = TAXIIClient(collection_id="coll-test-update")
+    
+    parsed_indicators, status_info = client.poll_and_parse_feed()
+    
+    assert len(parsed_indicators) == 1
+    assert parsed_indicators[0]["domain"] == "taxii-malicious.org"
+    assert parsed_indicators[0]["confidence"] == 88.0
+    assert parsed_indicators[0]["category"] == "Command & Control (C2)"
+    
+    aggregated = aggregator.aggregate_feeds({"TAXII Feed": parsed_indicators})
+    feed_statuses = {"TAXII Feed": status_info}
+    aggregator.update_store_and_db(aggregated, feed_statuses)
+    
+    assert store.lookup("taxii-malicious.org").matched is True
+    assert store.lookup("taxii-malicious.org").intel_score == 88.0
+    
+    health = store.db.get_feed_health()
+    assert len(health) == 1
+    assert health[0]["feed_name"] == "TAXII Feed"
+    assert health[0]["status"] == "SUCCESS"
+    assert health[0]["indicator_count"] == 1
+
 
 
 
