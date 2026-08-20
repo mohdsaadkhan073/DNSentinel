@@ -28,15 +28,15 @@
   --donut-ring-bg: #E2E8F0;
 }
 
-/* ================= DARK EMERALD COMMAND THEME (MATTE SOLID NON-GLOWY) ================= */
+/* ================= DARK EMERALD COMMAND THEME (DEFINED VISIBLE EMERALD BORDERS) ================= */
 [data-theme="dark"] {
   --bg-main: #030C08;
   --bg-sidebar: #04160E;
   --card-bg: #07150F;
-  --card-border: rgba(255, 255, 255, 0.12);
-  --card-shadow: none;
-  --card-hover-border: rgba(16, 185, 129, 0.45);
-  --card-hover-shadow: none;
+  --card-border: rgba(16, 185, 129, 0.32); /* Defined visible section border */
+  --card-shadow: 0 0 16px -2px rgba(16, 185, 129, 0.08), inset 0 0 1px rgba(16, 185, 129, 0.2); /* Defined edge glow */
+  --card-hover-border: rgba(52, 211, 153, 0.7);
+  --card-hover-shadow: 0 8px 25px -4px rgba(16, 185, 129, 0.25);
   --text-primary: #F8FAFC;
   --text-title: #F8FAFC;
   --text-secondary: #94A3B8;

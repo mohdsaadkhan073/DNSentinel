@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, LayoutDashboard, Activity, BarChart3, UploadCloud, 
-  Terminal, Zap, Radio, RefreshCw, PanelLeftClose, PanelLeftOpen,
-  Sun, Moon
+  RefreshCw, PanelLeftClose, PanelLeftOpen, Sun, Moon, Search, Network 
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,7 +22,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   onOpenUpload,
-  onRunTestQuery,
   onRefresh,
   isCollapsed,
   setIsCollapsed,
@@ -32,6 +30,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isLogoHovered, setIsLogoHovered] = useState(false);
 
+  // Active tab styling based on theme
+  const getActiveTabStyle = (tabName: string) => {
+    const isActive = activeTab === tabName;
+    if (!isActive) {
+      return 'text-emerald-100/70 hover:text-white hover:bg-emerald-950/40';
+    }
+    // Light Mode gets rich filled active tab, Dark Mode gets outlined minimal filling
+    return theme === 'light'
+      ? 'bg-emerald-500/25 text-white border border-emerald-400/40 shadow-sm font-bold'
+      : 'bg-emerald-500/10 text-white border border-emerald-400/80 font-bold';
+  };
+
   return (
     <aside 
       className={`border-r flex flex-col justify-between shrink-0 transition-all duration-300 ${
@@ -39,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } h-screen sticky top-0 z-40 ${
         theme === 'light' 
           ? 'bg-[#011711] text-white border-emerald-950' 
-          : 'bg-[#04160E] text-slate-100 border-slate-800/80'
+          : 'bg-[#04160E] text-slate-100 border-emerald-900/40'
       }`}
     >
       
@@ -51,8 +61,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setIsCollapsed(!isCollapsed)}
           onMouseEnter={() => setIsLogoHovered(true)}
           onMouseLeave={() => setIsLogoHovered(false)}
-          className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} pb-5 border-b ${
-            theme === 'light' ? 'border-emerald-900/60' : 'border-slate-800'
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} pb-4 border-b ${
+            theme === 'light' ? 'border-emerald-900/60' : 'border-emerald-900/40'
           } cursor-pointer group`}
           title={isCollapsed ? "Click to Expand Sidebar" : "Click to Collapse Sidebar"}
         >
@@ -60,138 +70,91 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Logo Icon that seamlessly switches to Toggle Icon on hover */}
             <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-800/60 text-emerald-400 shrink-0">
               {isLogoHovered ? (
-                isCollapsed ? <PanelLeftOpen className="w-6 h-6 text-white" /> : <PanelLeftClose className="w-6 h-6 text-white" />
+                isCollapsed ? <PanelLeftOpen className="w-5 h-5 text-white" /> : <PanelLeftClose className="w-5 h-5 text-white" />
               ) : (
-                <ShieldCheck className="w-6 h-6 text-white" />
+                <ShieldCheck className="w-5 h-5 text-white" />
               )}
             </div>
 
             {!isCollapsed && (
               <div className="animate-fade-in-up">
-                <h1 className="text-xl font-extrabold tracking-wide text-white font-mono">DNSentinel</h1>
-                <p className="text-[11px] text-emerald-200/70 font-medium mt-0.5">Threat Detection Engine</p>
+                <h1 className="text-lg font-extrabold tracking-wide text-white font-mono">DNSentinel</h1>
+                <p className="text-[10px] text-emerald-200/70 font-medium">Threat Detection Engine</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Navigation Section */}
-        <nav className="space-y-1.5 font-mono text-xs">
+        {/* Exact 6 Navigation Tabs */}
+        <nav className="space-y-1 font-mono text-xs">
+          {/* 1. Dashboard */}
           <button
             onClick={() => setActiveTab('DASHBOARD')}
-            className={`w-full px-3.5 py-3 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all font-semibold ${
-              activeTab === 'DASHBOARD'
-                ? 'bg-emerald-900/70 text-white border border-emerald-700/60'
-                : 'text-emerald-100/70 hover:text-white hover:bg-emerald-950/40'
-            }`}
-            title="Dashboard Overview"
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('DASHBOARD')}`}
+            title="Dashboard"
           >
             <LayoutDashboard className="w-4 h-4 text-emerald-300 shrink-0" />
-            {!isCollapsed && <span>Dashboard Overview</span>}
+            {!isCollapsed && <span>Dashboard</span>}
           </button>
 
+          {/* 2. Live DNS */}
           <button
-            onClick={() => setActiveTab('STREAM')}
-            className={`w-full px-3.5 py-3 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all font-semibold ${
-              activeTab === 'STREAM'
-                ? 'bg-emerald-900/70 text-white border border-emerald-700/60'
-                : 'text-emerald-100/70 hover:text-white hover:bg-emerald-950/40'
-            }`}
-            title="Telemetry Stream"
+            onClick={() => setActiveTab('LIVE_DNS')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('LIVE_DNS')}`}
+            title="Live DNS"
           >
             <Activity className="w-4 h-4 text-emerald-300 shrink-0" />
-            {!isCollapsed && <span>Telemetry Stream</span>}
+            {!isCollapsed && <span>Live DNS</span>}
           </button>
 
+          {/* 3. Threat Analytics */}
           <button
             onClick={() => setActiveTab('ANALYTICS')}
-            className={`w-full px-3.5 py-3 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all font-semibold ${
-              activeTab === 'ANALYTICS'
-                ? 'bg-emerald-900/70 text-white border border-emerald-700/60'
-                : 'text-emerald-100/70 hover:text-white hover:bg-emerald-950/40'
-            }`}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('ANALYTICS')}`}
             title="Threat Analytics"
           >
             <BarChart3 className="w-4 h-4 text-amber-300 shrink-0" />
             {!isCollapsed && <span>Threat Analytics</span>}
           </button>
-        </nav>
 
-        {/* Quick Threat Test Suite */}
-        {!isCollapsed ? (
-          <div className={`pt-4 border-t ${theme === 'light' ? 'border-emerald-900/60' : 'border-slate-800'} space-y-2 animate-fade-in-up`}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/60 font-mono block px-2">
-              Threat Test Suite
-            </span>
-
-            <div className="space-y-1.5 font-mono text-xs">
-              <button
-                onClick={() => onRunTestQuery("bad-c2.com")}
-                className="w-full px-3 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-left flex items-center gap-2.5 text-emerald-100"
-              >
-                <Terminal className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="truncate">Test C2 Threat IOC</span>
-              </button>
-
-              <button
-                onClick={() => onRunTestQuery("cxz98qwe12a98f.info")}
-                className="w-full px-3 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-left flex items-center gap-2.5 text-emerald-100"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="truncate">Test AI/ML DGA Model</span>
-              </button>
-
-              <button
-                onClick={() => onRunTestQuery("4f8a91b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8.attacker-tunnel.net", "TXT")}
-                className="w-full px-3 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-left flex items-center gap-2.5 text-emerald-100"
-              >
-                <Radio className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                <span className="truncate">Test DNS Tunneling</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className={`pt-4 border-t ${theme === 'light' ? 'border-emerald-900/60' : 'border-slate-800'} space-y-2 flex flex-col items-center`}>
-            <button
-              onClick={() => onRunTestQuery("bad-c2.com")}
-              className="p-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-rose-400"
-              title="Test C2 Threat IOC"
-            >
-              <Terminal className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onRunTestQuery("cxz98qwe12a98f.info")}
-              className="p-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-amber-400"
-              title="Test AI/ML DGA Model"
-            >
-              <Zap className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onRunTestQuery("4f8a91b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8.attacker-tunnel.net", "TXT")}
-              className="p-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/40 text-emerald-300"
-              title="Test DNS Tunneling"
-            >
-              <Radio className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Upload PCAP / Zeek Action Button */}
-        <div className="pt-2">
+          {/* 4. Domain Inspector */}
           <button
-            onClick={onOpenUpload}
-            className={`w-full btn-emerald-primary py-2.5 ${isCollapsed ? 'px-2' : 'px-4'} rounded-xl text-xs font-bold flex items-center justify-center gap-2`}
-            title="Upload PCAP / Zeek File"
+            onClick={() => setActiveTab('DOMAIN_INSPECTOR')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('DOMAIN_INSPECTOR')}`}
+            title="Domain Inspector"
           >
-            <UploadCloud className="w-4 h-4 shrink-0 text-white" />
-            {!isCollapsed && <span>Upload PCAP / Zeek</span>}
+            <Search className="w-4 h-4 text-cyan-300 shrink-0" />
+            {!isCollapsed && <span>Domain Inspector</span>}
           </button>
-        </div>
+
+          {/* 5. Source IPs */}
+          <button
+            onClick={() => setActiveTab('SOURCE_IPS')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('SOURCE_IPS')}`}
+            title="Source IPs"
+          >
+            <Network className="w-4 h-4 text-violet-300 shrink-0" />
+            {!isCollapsed && <span>Source IPs</span>}
+          </button>
+
+          {/* 6. PCAP / Zeek */}
+          <button
+            onClick={() => {
+              setActiveTab('PCAP_ZEEK');
+              onOpenUpload();
+            }}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('PCAP_ZEEK')}`}
+            title="PCAP / Zeek"
+          >
+            <UploadCloud className="w-4 h-4 text-emerald-300 shrink-0" />
+            {!isCollapsed && <span>PCAP / Zeek</span>}
+          </button>
+        </nav>
 
       </div>
 
       {/* Bottom Section: Theme Switcher & WebSocket Status Pill */}
-      <div className={`pt-4 border-t ${theme === 'light' ? 'border-emerald-900/60' : 'border-slate-800'} space-y-2 font-mono`}>
+      <div className={`pt-4 border-t ${theme === 'light' ? 'border-emerald-900/60' : 'border-emerald-900/40'} space-y-2 font-mono`}>
         
         {/* Theme Toggle Button */}
         <button

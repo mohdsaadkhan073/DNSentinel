@@ -10,7 +10,7 @@ export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('light'); // Light mode as primary default
+  const [theme, setTheme] = useState<'dark' | 'light'>('light'); // Light mode default
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
@@ -173,7 +173,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row font-sans">
       
-      {/* Left Sidebar Section */}
+      {/* Left Sidebar Section with 6 requested navigation tabs */}
       <Sidebar
         wsConnected={wsConnected}
         activeTab={activeTab}
@@ -215,8 +215,8 @@ export const App: React.FC = () => {
           <ThreatCharts summary={metrics} />
         )}
 
-        {/* Live Stream Table */}
-        {(activeTab === 'DASHBOARD' || activeTab === 'STREAM') && (
+        {/* Live Stream Table / Domain Inspector / Source IPs / PCAP View */}
+        {(activeTab === 'DASHBOARD' || activeTab === 'LIVE_DNS' || activeTab === 'DOMAIN_INSPECTOR' || activeTab === 'SOURCE_IPS' || activeTab === 'PCAP_ZEEK') && (
           <QueryStreamTable
             queries={queries}
             onSelectDecision={(decision) => setSelectedDecision(decision)}
