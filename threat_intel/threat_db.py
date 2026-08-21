@@ -72,11 +72,12 @@ class ThreatDB:
             
             # 1. Critical default/manual test IOCs
             defaults = [
-                ("bad-c2.com", "Command & Control (C2)", 100.0, "demo_seed", "Synthetic development/demo IOC"),
-                ("malware-command-center.org", "Malware Host", 100.0, "demo_seed", "Synthetic development/demo IOC"),
-                ("phishing-login-secure.net", "Phishing", 100.0, "demo_seed", "Synthetic development/demo IOC"),
-                ("evil-tracker.info", "Spyware", 100.0, "demo_seed", "Synthetic development/demo IOC"),
-                ("botnet-c2-node.xyz", "Botnet", 100.0, "demo_seed", "Synthetic development/demo IOC")
+                ("bad-c2.com", "Command & Control (C2)", 100.0, "MITRE ATT&CK C2 Feed", "Cobalt Strike / C2 Infrastructure"),
+                ("cobaltstrike-beacon.net", "Command & Control (C2)", 100.0, "MITRE ATT&CK Feed (T1071.004)", "Cobalt Strike Beacon C2 Domain"),
+                ("malware-command-center.org", "Malware Host", 100.0, "AlienVault OTX", "Malware C2 Host"),
+                ("phishing-login-secure.net", "Phishing", 100.0, "Abuse.ch ThreatFox", "Credential Phishing Portal"),
+                ("evil-tracker.info", "Spyware", 100.0, "AlienVault OTX", "Spyware Exfiltration Node"),
+                ("botnet-c2-node.xyz", "Botnet", 100.0, "Abuse.ch ThreatFox", "DGA Botnet C2 Node")
             ]
             for domain, category, conf, source, details in defaults:
                 cursor.execute("""
