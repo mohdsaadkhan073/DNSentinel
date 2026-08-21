@@ -5,6 +5,7 @@ import { SecurityDecisionItem } from './QueryStreamTable';
 interface SourceIpProps {
   queries: SecurityDecisionItem[];
   onSelectDecision?: (decision: SecurityDecisionItem) => void;
+  externalSearch?: string;
   theme?: 'dark' | 'light';
 }
 
@@ -21,9 +22,11 @@ interface IpSummary {
   decisions: SecurityDecisionItem[];
 }
 
-export const SourceIpAnalytics: React.FC<SourceIpProps> = ({ queries, onSelectDecision, theme = 'light' }) => {
+export const SourceIpAnalytics: React.FC<SourceIpProps> = ({ queries, onSelectDecision, externalSearch = '', theme = 'light' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIpFilter, setSelectedIpFilter] = useState<string | null>(null);
+
+  const activeSearch = (searchTerm || externalSearch).trim().toLowerCase();
 
   // Group queries by Client IP
   const ipAnalyticsList: IpSummary[] = useMemo(() => {
@@ -48,47 +51,50 @@ export const SourceIpAnalytics: React.FC<SourceIpProps> = ({ queries, onSelectDe
     });
 
     // Aggregate real-time stream queries
-    queries.forEach(item => {
-      const ip = item.query.client_ip || '192.168.1.100';
-      const existing = map.get(ip) || {
-        ip,
-        totalQueries: 0,
-        threatsCount: 0,
-        suspiciousCount: 0,
-        allowedCount: 0,
-        maxRiskScore: 0,
-        avgRiskScore: 0,
-        status: 'NORMAL',
-        lastSeen: item.query.timestamp || item.created_at || 'Just now',
-        decisions: []
-      };
+    if (queries && queries.length > 0) {
+      queries.forEach(q => {
+        const ip = q.query.client_ip || '192.168.1.100';
+        const existing = map.get(ip) || {
+          ip,
+          totalQueries: 0,
+          threatsCount: 0,
+          suspiciousCount: 0,
+          allowedCount: 0,
+          maxRiskScore: 0,
+          avgRiskScore: 0,
+          status: 'NORMAL',
+          lastSeen: q.query.timestamp || q.created_at || 'Just now',
+          decisions: []
+        };
 
-      existing.totalQueries += 1;
-      if (item.action === 'BLOCK') existing.threatsCount += 1;
-      else if (item.action === 'SUSPICIOUS') existing.suspiciousCount += 1;
-      else existing.allowedCount += 1;
+        existing.totalQueries++;
+        if (q.action === 'BLOCK') existing.threatsCount++;
+        else if (q.action === 'SUSPICIOUS') existing.suspiciousCount++;
+        else existing.allowedCount++;
 
-      existing.maxRiskScore = Math.max(existing.maxRiskScore, item.composite_risk_score);
-      existing.decisions.push(item);
+        existing.maxRiskScore = Math.max(existing.maxRiskScore, q.composite_risk_score);
+        existing.decisions.push(q);
 
-      if (existing.threatsCount > 0 || existing.maxRiskScore >= 70) {
-        existing.status = 'HIGH RISK';
-      } else if (existing.suspiciousCount > 0 || existing.maxRiskScore >= 35) {
-        existing.status = 'SUSPICIOUS';
-      } else {
-        existing.status = 'NORMAL';
-      }
+        if (existing.threatsCount > 0 || existing.maxRiskScore >= 70) existing.status = 'HIGH RISK';
+        else if (existing.suspiciousCount > 0 || existing.maxRiskScore >= 35) existing.status = 'SUSPICIOUS';
+        else existing.status = 'NORMAL';
 
-      map.set(ip, existing);
-    });
+        map.set(ip, existing);
+      });
+    }
 
     return Array.from(map.values()).sort((a, b) => b.maxRiskScore - a.maxRiskScore);
   }, [queries]);
 
   // Filter list by search term
   const filteredIps = useMemo(() => {
-    return ipAnalyticsList.filter(item => item.ip.includes(searchTerm.trim()));
-  }, [ipAnalyticsList, searchTerm]);
+    if (!activeSearch) return ipAnalyticsList;
+    return ipAnalyticsList.filter(item => 
+      item.ip.toLowerCase().includes(activeSearch) ||
+      item.status.toLowerCase().includes(activeSearch) ||
+      item.decisions.some(d => d.query.domain.toLowerCase().includes(activeSearch))
+    );
+  }, [ipAnalyticsList, activeSearch]);
 
   // Active IP inspect detail selection
   const activeIpData = useMemo(() => {

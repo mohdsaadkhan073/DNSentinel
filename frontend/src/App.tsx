@@ -10,6 +10,7 @@ import { SourceIpAnalytics } from './components/SourceIpAnalytics';
 import { PcapZeekInvestigator } from './components/PcapZeekInvestigator';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
+import { SearchModal } from './components/SearchModal';
 
 export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
@@ -17,6 +18,7 @@ export const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('light'); // Light mode default
   const [globalSearch, setGlobalSearch] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -25,6 +27,18 @@ export const App: React.FC = () => {
   // Persistent Domain Inspector Search State across Tab Navigation
   const [lastInspectedDomain, setLastInspectedDomain] = useState<string>('');
   const [lastInspectedResult, setLastInspectedResult] = useState<SecurityDecisionItem | null>(null);
+
+  // Global Ctrl + K / Cmd + K listener for Command Palette Search Modal
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Sync theme with body data-theme attribute
   useEffect(() => {
@@ -214,6 +228,7 @@ export const App: React.FC = () => {
           theme={theme}
           setTheme={setTheme}
           onOpenUpload={() => setIsUploadOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
           onRefresh={handleManualRefresh}
           globalSearch={globalSearch}
           setGlobalSearch={setGlobalSearch}
@@ -258,6 +273,7 @@ export const App: React.FC = () => {
               <SourceIpAnalytics
                 queries={queries}
                 onSelectDecision={(decision) => setSelectedDecision(decision)}
+                externalSearch={globalSearch}
                 theme={theme}
               />
             )}
@@ -302,6 +318,17 @@ export const App: React.FC = () => {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Universal Command Palette Search Modal Overlay */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        query={globalSearch}
+        setQuery={setGlobalSearch}
+        queries={queries}
+        onSelectDecision={(decision) => setSelectedDecision(decision)}
+        setActiveTab={setActiveTab}
       />
 
     </div>

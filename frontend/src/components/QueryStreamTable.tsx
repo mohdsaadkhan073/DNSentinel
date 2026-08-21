@@ -54,9 +54,15 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
   const filteredQueries = useMemo(() => {
     return queries.filter(item => {
       const matchesSearch =
+        !activeSearch ||
         item.query.domain.toLowerCase().includes(activeSearch) ||
-        item.query.client_ip.includes(activeSearch) ||
-        (item.resolved_ip && item.resolved_ip.includes(activeSearch));
+        item.query.client_ip.toLowerCase().includes(activeSearch) ||
+        (item.resolved_ip && item.resolved_ip.toLowerCase().includes(activeSearch)) ||
+        (item.decision_id && item.decision_id.toLowerCase().includes(activeSearch)) ||
+        (item.action && item.action.toLowerCase().includes(activeSearch)) ||
+        (item.query.protocol && item.query.protocol.toLowerCase().includes(activeSearch)) ||
+        (item.query.qtype && item.query.qtype.toLowerCase().includes(activeSearch)) ||
+        (item.rationale && item.rationale.toLowerCase().includes(activeSearch));
 
       if (filterAction === 'ALL') return matchesSearch;
       if (filterAction === 'CACHE') return matchesSearch && item.cache_hit;
