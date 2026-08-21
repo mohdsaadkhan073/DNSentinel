@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShieldAlert, Cpu, Radio, CheckCircle2, ShieldX, AlertTriangle, ArrowRight, Globe } from 'lucide-react';
+import { Search, ShieldAlert, Cpu, Radio, CheckCircle2, ShieldX, AlertTriangle, ArrowRight, Globe, FileDown } from 'lucide-react';
 import { SecurityDecisionItem } from './QueryStreamTable';
+import { generateDomainPdfReport } from '../utils/pdfReport';
 
 interface DomainInspectorProps {
   lastDomain?: string;
@@ -248,10 +249,21 @@ export const DomainInspector: React.FC<DomainInspectorProps> = ({
 
           </div>
 
-          {/* Rationale Bar */}
-          <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
-            <span className="text-[10px] font-bold uppercase tracking-wider theme-subtitle block mb-1">Investigation Summary:</span>
-            <p className="text-xs font-semibold theme-title">{result.rationale}</p>
+          {/* Rationale Bar & PDF Export CTA */}
+          <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider theme-subtitle block mb-1">Investigation Summary:</span>
+              <p className="text-xs font-semibold theme-title">{result.rationale}</p>
+            </div>
+
+            <button
+              onClick={() => generateDomainPdfReport(result)}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+              title="Export full executive threat evidence report as PDF"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>Download PDF Report</span>
+            </button>
           </div>
 
         </div>

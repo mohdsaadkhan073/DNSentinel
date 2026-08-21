@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldAlert, Cpu, Radio } from 'lucide-react';
+import { X, ShieldAlert, Cpu, Radio, FileDown } from 'lucide-react';
 import { SecurityDecisionItem } from './QueryStreamTable';
+import { generateDomainPdfReport } from '../utils/pdfReport';
 
 interface EvidenceModalProps {
   decision: SecurityDecisionItem | null;
@@ -69,10 +70,10 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-section-fade">
-      <div className="soc-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-emerald-900/40 shadow-2xl animate-section-fade">
+      <div className="soc-card rounded-2xl w-full max-w-4xl h-[620px] max-h-[90vh] overflow-hidden flex flex-col border border-emerald-900/40 shadow-2xl animate-section-fade">
         
         {/* Modal Header: Title & Decision ID Only */}
-        <div className="p-5 border-b border-emerald-900/20 flex items-center justify-between bg-[var(--input-bg)]">
+        <div className="p-5 border-b border-emerald-900/20 flex items-center justify-between bg-[var(--input-bg)] shrink-0">
           <div className="flex items-center gap-3.5">
             <span className={`px-3 py-1 rounded-xl text-xs font-bold font-mono ${actionBadge}`}>
               {decision.action}
@@ -93,7 +94,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
         </div>
 
         {/* Modal Navigation Tabs (100% Equally Spaced across Modal Width) */}
-        <div className="flex items-center justify-evenly w-full px-6 pt-4 border-b border-emerald-900/20 bg-[var(--input-bg)] text-xs font-mono font-semibold select-none">
+        <div className="flex items-center justify-evenly w-full px-6 pt-4 border-b border-emerald-900/20 bg-[var(--input-bg)] text-xs font-mono font-semibold select-none shrink-0">
           <button
             onClick={() => setActiveTab('SUMMARY')}
             className={`pb-3.5 transition-all border-b-2 ${
@@ -123,7 +124,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
         </div>
 
         {/* Fixed Height Modal Content Area with Animated Smooth Tab Transitions */}
-        <div className="p-6 overflow-y-auto h-[460px] flex-1 text-xs font-mono">
+        <div className="p-6 overflow-y-auto flex-1 text-xs font-mono">
           <div key={activeTab} className="animate-section-fade space-y-6">
             
             {activeTab === 'SUMMARY' && (
@@ -255,8 +256,17 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-emerald-900/20 flex justify-end bg-[var(--input-bg)]">
+        {/* Modal Footer (Right-Aligned Buttons) */}
+        <div className="p-4 border-t border-emerald-900/20 flex items-center justify-end gap-3 bg-[var(--input-bg)] shrink-0 font-mono">
+          <button
+            onClick={() => generateDomainPdfReport(decision)}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+            title="Export full executive threat evidence report as PDF"
+          >
+            <FileDown className="w-4 h-4" />
+            <span>Download PDF Report</span>
+          </button>
+
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl btn-secondary text-xs font-bold"
