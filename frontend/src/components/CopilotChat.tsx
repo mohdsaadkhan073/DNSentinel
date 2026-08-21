@@ -35,7 +35,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
     {
       id: 'welcome-1',
       sender: 'ai',
-      text: "👋 Hi, I'm **SentinAI**, your local AI SOC Copilot powered by **Ollama (`llama3:latest`)**.\n\nI can analyze DNS threats, evaluate domains, or navigate the dashboard for you! Try asking:\n- *\"Evaluate bad-c2.com\"*\n- *\"Show Threat Analytics\"*\n- *\"Check system status\"*",
+      text: "👋 Hi, I'm **SentinAI**, your local AI SOC Copilot powered by **Ollama** (`llama3:latest`).\n\nI can analyze DNS threats, evaluate domains, or navigate the dashboard for you! Try asking:\n- Evaluate `bad-c2.com` \n- Show Threat Analytics\n- Check system status",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -209,6 +209,77 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
     "Clear table filters"
   ];
 
+  const renderMarkdownText = (text: string) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+
+    return (
+      <div className="space-y-1">
+        {lines.map((line, lineIdx) => {
+          let trimmed = line.trim();
+          if (!trimmed) return <div key={lineIdx} className="h-1" />;
+
+          const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
+          if (isBullet) {
+            trimmed = trimmed.substring(2);
+          }
+
+          const parseInline = (str: string): React.ReactNode[] => {
+            const parts: React.ReactNode[] = [];
+            let key = 0;
+            const regex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+            const tokens = str.split(regex);
+
+            tokens.forEach((token) => {
+              if (!token) return;
+
+              if (token.startsWith('`') && token.endsWith('`')) {
+                const codeVal = token.slice(1, -1);
+                parts.push(
+                  <code
+                    key={key++}
+                    className="font-mono font-bold text-slate-600 dark:text-slate-400"
+                  >
+                    {codeVal}
+                  </code>
+                );
+              } else if (token.startsWith('**') && token.endsWith('**')) {
+                const boldVal = token.slice(2, -2);
+                parts.push(
+                  <strong key={key++} className="font-extrabold text-emerald-700 dark:text-emerald-400">
+                    {parseInline(boldVal)}
+                  </strong>
+                );
+              } else if (token.startsWith('*') && token.endsWith('*')) {
+                const italicVal = token.slice(1, -1);
+                parts.push(
+                  <em key={key++} className="italic theme-title font-semibold">
+                    {parseInline(italicVal)}
+                  </em>
+                );
+              } else {
+                parts.push(token);
+              }
+            });
+
+            return parts;
+          };
+
+          if (isBullet) {
+            return (
+              <div key={lineIdx} className="flex items-start gap-1.5 ml-2 my-0.5">
+                <span className="text-emerald-600 dark:text-emerald-400 text-xs shrink-0 font-bold">•</span>
+                <span className="leading-snug theme-title font-medium">{parseInline(trimmed)}</span>
+              </div>
+            );
+          }
+
+          return <p key={lineIdx} className="leading-relaxed theme-title font-medium">{parseInline(line)}</p>;
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-40 font-mono">
       {/* Hover Expandable Robot Launcher Button */}
@@ -283,10 +354,10 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
                   className={`max-w-[85%] p-3 rounded-2xl ${
                     m.sender === 'user'
                       ? 'bg-emerald-600 text-white font-medium rounded-br-none shadow-md'
-                      : 'soc-card border border-emerald-900/30 text-slate-200 rounded-bl-none theme-title'
+                      : 'soc-card border border-slate-200 dark:border-emerald-900/30 rounded-bl-none theme-title font-medium'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                  {renderMarkdownText(m.text)}
 
                   {/* Render Action Execution Card if returned by AI */}
                   {m.action && (
