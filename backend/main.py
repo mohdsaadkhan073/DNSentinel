@@ -152,6 +152,7 @@ class CopilotChatRequest(BaseModel):
     message: str
     history: Optional[list] = None
     model: Optional[str] = "llama3:latest"
+    force_offline: Optional[bool] = False
 
 @app.post("/api/v1/copilot/chat")
 async def copilot_chat_endpoint(req: CopilotChatRequest):
@@ -166,7 +167,8 @@ async def copilot_chat_endpoint(req: CopilotChatRequest):
         message=req.message,
         history=req.history or [],
         model=req.model or "llama3:latest",
-        context=context
+        context=context,
+        force_offline=req.force_offline or False
     )
     return res
 

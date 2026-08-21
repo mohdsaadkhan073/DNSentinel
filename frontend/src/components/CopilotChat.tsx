@@ -119,7 +119,8 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
         body: JSON.stringify({
           message: msgText,
           history: historyPayload,
-          model: selectedModel
+          model: selectedModel,
+          force_offline: isOfflineOnly
         })
       });
 
@@ -221,7 +222,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
     "Clear table filters"
   ];
 
-  const renderMarkdownText = (text: string) => {
+  const renderMarkdownText = (text: string, isUserMessage: boolean = false) => {
     if (!text) return null;
     const lines = text.split('\n');
 
@@ -250,7 +251,9 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
                 parts.push(
                   <code
                     key={key++}
-                    className="font-mono font-bold text-slate-600 dark:text-slate-400"
+                    className={`font-mono font-bold ${
+                      isUserMessage ? 'text-emerald-200' : 'text-slate-600 dark:text-slate-400'
+                    }`}
                   >
                     {codeVal}
                   </code>
@@ -258,14 +261,18 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
               } else if (token.startsWith('**') && token.endsWith('**')) {
                 const boldVal = token.slice(2, -2);
                 parts.push(
-                  <strong key={key++} className="font-extrabold text-emerald-700 dark:text-emerald-400">
+                  <strong key={key++} className={`font-extrabold ${
+                    isUserMessage ? 'text-emerald-300' : 'text-emerald-700 dark:text-emerald-400'
+                  }`}>
                     {parseInline(boldVal)}
                   </strong>
                 );
               } else if (token.startsWith('*') && token.endsWith('*')) {
                 const italicVal = token.slice(1, -1);
                 parts.push(
-                  <em key={key++} className="italic theme-title font-semibold">
+                  <em key={key++} className={`italic font-semibold ${
+                    isUserMessage ? 'text-slate-100' : 'theme-title'
+                  }`}>
                     {parseInline(italicVal)}
                   </em>
                 );
@@ -277,16 +284,18 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
             return parts;
           };
 
+          const textStyleClass = isUserMessage ? 'text-white font-medium' : 'theme-title font-medium';
+
           if (isBullet) {
             return (
               <div key={lineIdx} className="flex items-start gap-1.5 ml-2 my-0.5">
-                <span className="text-emerald-600 dark:text-emerald-400 text-xs shrink-0 font-bold">•</span>
-                <span className="leading-snug theme-title font-medium">{parseInline(trimmed)}</span>
+                <span className={`${isUserMessage ? 'text-emerald-300' : 'text-emerald-600 dark:text-emerald-400'} text-xs shrink-0 font-bold`}>•</span>
+                <span className={`leading-snug ${textStyleClass}`}>{parseInline(trimmed)}</span>
               </div>
             );
           }
 
-          return <p key={lineIdx} className="leading-relaxed theme-title font-medium">{parseInline(line)}</p>;
+          return <p key={lineIdx} className={`leading-relaxed ${textStyleClass}`}>{parseInline(line)}</p>;
         })}
       </div>
     );
@@ -298,7 +307,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group flex items-center justify-center gap-2 h-12 w-12 hover:w-32 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl transition-all duration-300 border border-emerald-400/40 cursor-pointer overflow-hidden px-3"
+          className="group flex items-center justify-center gap-2 h-12 w-12 hover:w-32 bg-[#011711] dark:bg-[#04160E] hover:bg-[#032e22] text-white rounded-full shadow-2xl transition-all duration-300 border border-emerald-500/50 cursor-pointer overflow-hidden px-3"
           title="Ask AI - SentinAI SOC Copilot"
         >
           <Bot className="w-6 h-6 shrink-0" />
@@ -365,11 +374,11 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
                 <div
                   className={`max-w-[85%] p-3 rounded-2xl ${
                     m.sender === 'user'
-                      ? 'bg-emerald-600 text-white font-medium rounded-br-none shadow-md'
+                      ? 'bg-[#011711] dark:bg-[#042418] text-white border border-emerald-500/40 font-medium rounded-br-none shadow-md'
                       : 'soc-card border border-slate-200 dark:border-emerald-900/30 rounded-bl-none theme-title font-medium'
                   }`}
                 >
-                  {renderMarkdownText(m.text)}
+                  {renderMarkdownText(m.text, m.sender === 'user')}
 
                   {/* Render Action Execution Card if returned by AI */}
                   {m.action && (
@@ -479,7 +488,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
             <button
               type="submit"
               disabled={loading || !inputMsg.trim()}
-              className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-all shrink-0 cursor-pointer"
+              className="p-2 rounded-xl bg-[#011711] dark:bg-[#042418] hover:bg-[#032e22] border border-emerald-500/40 disabled:opacity-50 text-white transition-all shrink-0 cursor-pointer"
               title="Send message"
             >
               <Send className="w-4 h-4" />

@@ -75,11 +75,21 @@ class CopilotManager:
         message: str,
         history: Optional[List[Dict[str, str]]] = None,
         model: str = "llama3:latest",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        force_offline: bool = False
     ) -> Dict[str, Any]:
         """
-        Process chat prompt via Ollama API and parse any embedded action commands.
+        Process chat prompt via Ollama API or fast rule-based engine.
         """
+        if force_offline:
+            fallback_reply, fallback_action = self._rule_based_fallback(message, context)
+            return {
+                "online": False,
+                "reply": fallback_reply,
+                "action": fallback_action,
+                "model": "rule-engine (offline)"
+            }
+
         if history is None:
             history = []
 
