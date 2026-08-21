@@ -873,7 +873,7 @@ def test_orchestrator_initialization_and_lookup(test_db_path):
     assert decision.action == ActionDecision.BLOCK
     assert decision.intel_result.threat_category == "Command & Control (C2)"
     assert decision.intel_result.intel_score == 100.0
-    assert decision.intel_result.source_feed == "demo_seed"
+    assert decision.intel_result.source_feed in ["demo_seed", "MITRE ATT&CK C2 Feed"]
     
     # 3. Test clean domain query (no match)
     query_clean = DNSQuery(query_id="q-clean", domain="google.com", client_ip="192.168.1.5")

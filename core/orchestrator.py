@@ -17,10 +17,11 @@ from core.risk_engine import RiskEngine
 def resolve_target_ip(domain: str, action: ActionDecision) -> str:
     if action == ActionDecision.BLOCK:
         return "0.0.0.0"
+    clean_domain = domain.strip().strip("'\"`\\/").lower()
     try:
-        return socket.gethostbyname(domain)
+        return socket.gethostbyname(clean_domain)
     except Exception:
-        h = abs(hash(domain))
+        h = abs(hash(clean_domain))
         return f"104.{(h % 180) + 10}.{(h % 240) + 1}.{(h % 250) + 1}"
 
 class Orchestrator:
