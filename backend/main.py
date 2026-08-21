@@ -37,16 +37,33 @@ orchestrator = Orchestrator(
 )
 
 db_manager = DatabaseManager()
+from resolver.udp_server import UDPResolverServer
+
 ws_manager = WebSocketManager()
 batch_analyzer = BatchAnalyzer(orchestrator=orchestrator)
 copilot_manager = CopilotManager()
+udp_server: Optional[UDPResolverServer] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db_manager.init_db()
     dga_classifier.warmup()
+    
+    global udp_server
+    try:
+        udp_server = UDPResolverServer(orchestrator=orchestrator)
+        udp_server.start_sync()
+        print("[Backend] DNS over UDP Server (Port 53) started successfully.")
+    except Exception as e:
+        print(f"[Backend] UDP Port 53 Listener Warning: {e}")
+
     print("[Backend] DNSentinel FastAPI Telemetry Server initialized successfully.")
     yield
+    if udp_server:
+        try:
+            udp_server.stop()
+        except Exception:
+            pass
 
 app = FastAPI(
     title="DNSentinel Threat Detection Telemetry API",
