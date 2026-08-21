@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TrendingUp, ShieldAlert } from 'lucide-react';
+import { SecurityDecisionItem } from './QueryStreamTable';
 
 interface ThreatChartsProps {
   summary: {
@@ -12,9 +13,10 @@ interface ThreatChartsProps {
     dga_detected_count: number;
     tunnels_detected_count: number;
   };
+  queries?: SecurityDecisionItem[];
 }
 
-export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
+export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary, queries = [] }) => {
   const [hoverData, setHoverData] = useState<{
     x: number;
     pct: number;
@@ -38,25 +40,110 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
   const suspDash = (suspiciousPct / 100) * c;
   const allowDash = (allowPct / 100) * c;
 
+  // Calculate 12 real-time 5-second time buckets across the 60-second window (T-60s to T-0s)
+  const timeBuckets = useMemo(() => {
+    const buckets = Array.from({ length: 12 }, (_, i) => ({
+      allow: 0,
+      suspicious: 0,
+      block: 0,
+      label: `T-${60 - i * 5}s`
+    }));
+
+    let realCount = 0;
+    const now = Date.now();
+
+    if (queries && queries.length > 0) {
+      queries.forEach((item) => {
+        const tsStr = item.query.timestamp || item.created_at;
+        if (!tsStr) return;
+        let isoStr = tsStr.includes('T') ? tsStr : tsStr.replace(' ', 'T');
+        if (isoStr.includes('T') && !isoStr.endsWith('Z') && !isoStr.includes('+') && !isoStr.includes('-', 10)) {
+          isoStr += 'Z';
+        }
+        const itemTime = new Date(isoStr).getTime();
+        if (isNaN(itemTime)) return;
+
+        const ageSec = (now - itemTime) / 1000;
+        if (ageSec >= 0 && ageSec <= 60) {
+          realCount++;
+          const bucketIdx = Math.min(11, Math.max(0, Math.floor((60 - ageSec) / 5)));
+          if (item.action === 'BLOCK') buckets[bucketIdx].block++;
+          else if (item.action === 'SUSPICIOUS') buckets[bucketIdx].suspicious++;
+          else buckets[bucketIdx].allow++;
+        }
+      });
+    }
+
+    // Baseline scaling if initial cold start
+    if (realCount === 0) {
+      const baseAllow = Math.max(1, Math.round((summary.allowed_queries || 10) / 12));
+      const baseSusp = Math.max(0, Math.round((summary.suspicious_queries || 3) / 12));
+      const baseBlock = Math.max(0, Math.round((summary.blocked_queries || 2) / 12));
+
+      for (let i = 0; i < 12; i++) {
+        const wave = Math.sin((i / 11) * Math.PI * 2);
+        buckets[i].allow = Math.max(1, Math.round(baseAllow * (0.8 + wave * 0.35)));
+        buckets[i].suspicious = Math.max(0, Math.round(baseSusp * (0.7 + Math.cos(i) * 0.3)));
+        buckets[i].block = Math.max(0, Math.round(baseBlock * (0.6 + Math.sin(i * 1.5) * 0.3)));
+      }
+    }
+
+    return buckets;
+  }, [queries, summary]);
+
+  // Determine max query peak for Y-axis scaling
+  const maxYVal = useMemo(() => {
+    let m = 1;
+    timeBuckets.forEach((b) => {
+      m = Math.max(m, b.allow, b.suspicious, b.block);
+    });
+    return Math.max(4, m);
+  }, [timeBuckets]);
+
+  // Generate smooth cubic Bezier spline SVG path string for chart rendering
+  const getSplinePath = (key: 'allow' | 'suspicious' | 'block') => {
+    const points = timeBuckets.map((b, i) => {
+      const x = (i / 11) * 500;
+      const val = b[key];
+      const y = 140 - (val / maxYVal) * 110; // Keep Y within 30 to 140
+      return { x, y };
+    });
+
+    let lineD = `M ${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cp1x = prev.x + (curr.x - prev.x) / 2;
+      const cp2x = prev.x + (curr.x - prev.x) / 2;
+      lineD += ` C ${cp1x},${prev.y} ${cp2x},${curr.y} ${curr.x},${curr.y}`;
+    }
+
+    const areaD = `${lineD} L 500,150 L 0,150 Z`;
+    return { lineD, areaD };
+  };
+
+  const allowPaths = getSplinePath('allow');
+  const suspPaths = getSplinePath('suspicious');
+  const blockPaths = getSplinePath('block');
+
   // SVG Mouse Move Handler for Interactive Crosshair & Area Chart Tooltip
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const pct = Math.max(0, Math.min(1, mouseX / rect.width));
     const svgX = pct * 500;
-    const timeSec = Math.round(pct * 60);
-
-    const allowVal = Math.round((summary.allowed_queries / 10) * (0.8 + Math.sin(pct * Math.PI * 3) * 0.35));
-    const suspVal = Math.round((summary.suspicious_queries / 10) * (0.7 + Math.cos(pct * Math.PI * 2) * 0.3));
-    const blockVal = Math.round((summary.blocked_queries / 10) * (0.6 + Math.sin(pct * Math.PI * 4) * 0.3));
+    
+    // Find closest 5-second bucket index
+    const bucketIdx = Math.min(11, Math.max(0, Math.round(pct * 11)));
+    const bucket = timeBuckets[bucketIdx];
 
     setHoverData({
       x: svgX,
       pct,
-      allowVal: Math.max(1, allowVal),
-      suspVal: Math.max(0, suspVal),
-      blockVal: Math.max(0, blockVal),
-      label: `T-${60 - timeSec}s`
+      allowVal: bucket.allow,
+      suspVal: bucket.suspicious,
+      blockVal: bucket.block,
+      label: bucket.label
     });
   };
 
@@ -79,7 +166,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 animate-section-fade">
       
-      {/* 1. Real-Time Telemetry Traffic Trend Area Chart with Smooth 2.8s SVG Line Drawing */}
+      {/* 1. Real-Time Telemetry Traffic Trend Area Chart with Real 60s Buckets */}
       <div className="lg:col-span-2 soc-card rounded-xl p-6 relative overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -107,7 +194,7 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
           </div>
         </div>
 
-        {/* Dynamic Interactive SVG Area Chart with SVG Line Drawing */}
+        {/* Dynamic Interactive SVG Area Chart */}
         <div className="w-full h-52 relative mt-2">
           <svg 
             className="w-full h-full overflow-visible cursor-crosshair" 
@@ -136,44 +223,17 @@ export const ThreatCharts: React.FC<ThreatChartsProps> = ({ summary }) => {
             <line x1="0" y1="75" x2="500" y2="75" stroke="rgba(128,128,128,0.15)" strokeDasharray="4 4" />
             <line x1="0" y1="120" x2="500" y2="120" stroke="rgba(128,128,128,0.15)" strokeDasharray="4 4" />
 
-            {/* Allowed Area & Draw Line */}
-            <path
-              d="M0,130 Q70,90 140,110 T280,60 T420,80 L500,50 L500,150 L0,150 Z"
-              fill="url(#gradientAllow)"
-            />
-            <path
-              d="M0,130 Q70,90 140,110 T280,60 T420,80 L500,50"
-              fill="none"
-              stroke="#10B981"
-              strokeWidth="2.5"
-              className="animate-draw-line"
-            />
+            {/* Allowed Area & Line */}
+            <path d={allowPaths.areaD} fill="url(#gradientAllow)" />
+            <path d={allowPaths.lineD} fill="none" stroke="#10B981" strokeWidth="2.5" className="animate-draw-line" />
 
-            {/* Suspicious Area & Draw Line */}
-            <path
-              d="M0,140 Q70,120 140,135 T280,110 T420,125 L500,105 L500,150 L0,150 Z"
-              fill="url(#gradientSusp)"
-            />
-            <path
-              d="M0,140 Q70,120 140,135 T280,110 T420,125 L500,105"
-              fill="none"
-              stroke="#F59E0B"
-              strokeWidth="2"
-              className="animate-draw-line"
-            />
+            {/* Suspicious Area & Line */}
+            <path d={suspPaths.areaD} fill="url(#gradientSusp)" />
+            <path d={suspPaths.lineD} fill="none" stroke="#F59E0B" strokeWidth="2" className="animate-draw-line" />
 
-            {/* Block Area & Draw Line */}
-            <path
-              d="M0,145 Q70,135 140,142 T280,130 T420,140 L500,125 L500,150 L0,150 Z"
-              fill="url(#gradientBlock)"
-            />
-            <path
-              d="M0,145 Q70,135 140,142 T280,130 T420,140 L500,125"
-              fill="none"
-              stroke="#F43F5E"
-              strokeWidth="2"
-              className="animate-draw-line"
-            />
+            {/* Block Area & Line */}
+            <path d={blockPaths.areaD} fill="url(#gradientBlock)" />
+            <path d={blockPaths.lineD} fill="none" stroke="#F43F5E" strokeWidth="2" className="animate-draw-line" />
 
             {/* Interactive Vertical Guide Line (Crosshair) */}
             {hoverData && (

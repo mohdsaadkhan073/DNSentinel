@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Cpu, Database, Activity, Target, Zap, Server, BarChart2, Radio } from 'lucide-react';
 import { ThreatCharts } from './ThreatCharts';
+import { SecurityDecisionItem } from './QueryStreamTable';
 
 interface ThreatAnalyticsProps {
   summary: {
@@ -13,10 +14,11 @@ interface ThreatAnalyticsProps {
     dga_detected_count: number;
     tunnels_detected_count: number;
   };
+  queries?: SecurityDecisionItem[];
   theme?: 'dark' | 'light';
 }
 
-export const ThreatAnalytics: React.FC<ThreatAnalyticsProps> = ({ summary, theme = 'light' }) => {
+export const ThreatAnalytics: React.FC<ThreatAnalyticsProps> = ({ summary, queries = [], theme = 'light' }) => {
   const [intelStats, setIntelStats] = useState<any>({
     total_iocs_loaded: 254891,
     stix_version: "2.1",
@@ -152,7 +154,7 @@ export const ThreatAnalytics: React.FC<ThreatAnalyticsProps> = ({ summary, theme
       </div>
 
       {/* Interactive Charts Component (Donut Breakdown & Traffic Velocity Line Graph) */}
-      <ThreatCharts summary={summary} />
+      <ThreatCharts summary={summary} queries={queries} />
 
       {/* MITRE ATT&CK Matrix Mapping Section */}
       <div className="soc-card p-6 rounded-2xl space-y-4">

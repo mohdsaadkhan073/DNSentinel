@@ -248,6 +248,7 @@ export const App: React.FC = () => {
             {activeTab === 'ANALYTICS' && (
               <ThreatAnalytics
                 summary={metrics}
+                queries={queries}
                 theme={theme}
               />
             )}
@@ -273,7 +274,7 @@ export const App: React.FC = () => {
 
             {/* Donut & Area Threat Charts (Dashboard View) */}
             {activeTab === 'DASHBOARD' && (
-              <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} />
+              <ThreatCharts key={`charts-${refreshKey}`} summary={metrics} queries={queries} />
             )}
 
             {/* Live Stream Table (Displayed on DASHBOARD & LIVE_DNS) */}
