@@ -94,7 +94,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isCollapsed && <span>Dashboard</span>}
           </button>
 
-          {/* 2. Live DNS */}
+          {/* 2. Domain Inspector */}
+          <button
+            onClick={() => setActiveTab('DOMAIN_INSPECTOR')}
+            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('DOMAIN_INSPECTOR')}`}
+            title="Domain Inspector"
+          >
+            <Search className="w-4 h-4 text-cyan-300 shrink-0" />
+            {!isCollapsed && <span>Domain Inspector</span>}
+          </button>
+
+          {/* 3. Live DNS */}
           <button
             onClick={() => setActiveTab('LIVE_DNS')}
             className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('LIVE_DNS')}`}
@@ -104,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isCollapsed && <span>Live DNS</span>}
           </button>
 
-          {/* 3. Threat Analytics */}
+          {/* 4. Threat Analytics */}
           <button
             onClick={() => setActiveTab('ANALYTICS')}
             className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('ANALYTICS')}`}
@@ -112,16 +122,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <BarChart3 className="w-4 h-4 text-amber-300 shrink-0" />
             {!isCollapsed && <span>Threat Analytics</span>}
-          </button>
-
-          {/* 4. Domain Inspector */}
-          <button
-            onClick={() => setActiveTab('DOMAIN_INSPECTOR')}
-            className={`w-full px-3 py-2.5 rounded-xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all ${getActiveTabStyle('DOMAIN_INSPECTOR')}`}
-            title="Domain Inspector"
-          >
-            <Search className="w-4 h-4 text-cyan-300 shrink-0" />
-            {!isCollapsed && <span>Domain Inspector</span>}
           </button>
 
           {/* 5. Source IPs */}
