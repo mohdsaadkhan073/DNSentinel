@@ -207,29 +207,53 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
               </>
             )}
 
-            {activeTab === 'FEATURES' && (
-              <div className="space-y-4">
-                <h4 className="text-sm font-bold theme-title">DGA & Tunneling Feature Vector Breakdown</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
-                  <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
-                    <span className="theme-subtitle block text-[10px]">Domain Length</span>
-                    <span className="text-sm font-bold theme-title">{decision.query.domain.length} chars</span>
+            {activeTab === 'FEATURES' && (() => {
+              const subdomains = decision.query.domain.split('.').length > 2 
+                ? decision.query.domain.split('.').slice(0, -2) 
+                : [];
+              return (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold theme-title">DGA & Tunneling Feature Vector Breakdown</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
+                    <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                      <span className="theme-subtitle block text-[10px]">Domain Length</span>
+                      <span className="text-sm font-bold theme-title">{decision.query.domain.length} chars</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                      <span className="theme-subtitle block text-[10px]">Shannon Entropy</span>
+                      <span className="text-sm font-bold theme-title">{decision.tunnel_result?.entropy || 3.4}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                      <span className="theme-subtitle block text-[10px]">DGA Probability</span>
+                      <span className="text-sm font-bold theme-title">{(decision.ml_result?.dga_probability * 100 || 2.1).toFixed(1)}%</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
+                      <span className="theme-subtitle block text-[10px]">Subdomain Count</span>
+                      <span className="text-sm font-bold theme-title">{subdomains.length}</span>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
-                    <span className="theme-subtitle block text-[10px]">Shannon Entropy</span>
-                    <span className="text-sm font-bold theme-title">{decision.tunnel_result?.entropy || 3.4}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
-                    <span className="theme-subtitle block text-[10px]">DGA Probability</span>
-                    <span className="text-sm font-bold theme-title">{(decision.ml_result?.dga_probability * 100 || 2.1).toFixed(1)}%</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20">
-                    <span className="theme-subtitle block text-[10px]">Subdomain Count</span>
-                    <span className="text-sm font-bold theme-title">{decision.query.domain.split('.').length - 1}</span>
+
+                  {/* Subdomain List Detail Card */}
+                  <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold theme-title">Detected Subdomain Labels</span>
+                      <span className="text-[10px] theme-subtitle font-mono">{subdomains.length} Subdomain(s)</span>
+                    </div>
+                    {subdomains.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {subdomains.map((sd, i) => (
+                          <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
+                            {sd}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs theme-subtitle italic">Apex Domain (No subdomains present)</p>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Full Attributes Key-Value Tab */}
             {activeTab === 'ATTRIBUTES' && (
