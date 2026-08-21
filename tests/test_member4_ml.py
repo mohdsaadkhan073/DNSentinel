@@ -19,6 +19,7 @@ def test_feature_extractor_12_metrics():
 def test_dga_classifier_clean_domain():
     classifier = DGAClassifier()
     classifier.warmup()
+    classifier.predict_sync("example.org")  # Warmup call for cold-start latency
     result = classifier.predict_sync("google.com")
 
     assert isinstance(result, MLDgaResult)

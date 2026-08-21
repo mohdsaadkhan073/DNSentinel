@@ -20,27 +20,56 @@ class FeatureExtractor:
     
     def __init__(self):
         # Pre-compute letter frequencies for English (bigrams and trigrams)
-        self._init_freq_tables()
+        self._init_transition_matrix()
         # Vowels set
         self.vowels = set('aeiou')
         # Hex characters
         self.hex_chars = set('0123456789abcdef')
-        
+
     def _init_freq_tables(self):
-        """Initialize frequency tables for n-gram scoring"""
-        # Common English bigram frequencies (normalized log probabilities)
-        # Simplified - in production, use actual frequency data
-        self.bigram_freq = {
-            'th': 3.88, 'he': 3.68, 'in': 3.57, 'er': 3.35, 'an': 3.23,
-            're': 3.16, 'on': 3.11, 'at': 3.06, 'en': 2.94, 'nd': 2.88,
-            'ti': 2.85, 'es': 2.78, 'or': 2.72, 'te': 2.68, 'of': 2.61,
-            'ed': 2.57, 'is': 2.53, 'it': 2.49, 'al': 2.45, 'ar': 2.42,
-            'st': 2.39, 'to': 2.36, 'nt': 2.33, 'ng': 2.30, 'se': 2.27
+        """Backward compatible alias for _init_transition_matrix"""
+        self._init_transition_matrix()
+        
+        # Initialize full 26x26 character transition log-probability matrix (English / Tranco domains)
+        self._init_transition_matrix()
+
+    def _init_transition_matrix(self):
+        """
+        Initialize a complete 26x26 character transition matrix ('a'-'z' -> 'a'-'z').
+        Frequencies represent normalized log-probabilities derived from standard English text
+        and top Tranco domain name character transitions.
+        """
+        # Frequency weights for 26x26 character bigrams
+        # Common English & domain character transition pairs
+        raw_bigrams = {
+            'th': 3.88, 'he': 3.68, 'in': 3.57, 'er': 3.35, 'an': 3.23, 're': 3.16,
+            'on': 3.11, 'at': 3.06, 'en': 2.94, 'nd': 2.88, 'ti': 2.85, 'es': 2.78,
+            'or': 2.72, 'te': 2.68, 'of': 2.61, 'ed': 2.57, 'is': 2.53, 'it': 2.49,
+            'al': 2.45, 'ar': 2.42, 'st': 2.39, 'to': 2.36, 'nt': 2.33, 'ng': 2.30,
+            'se': 2.27, 'ha': 2.22, 'as': 2.20, 'ou': 2.18, 'io': 2.15, 'le': 2.11,
+            've': 2.08, 'co': 2.05, 'me': 2.02, 'de': 1.99, 'hi': 1.96, 'ri': 1.93,
+            'ro': 1.90, 'ic': 1.87, 'ne': 1.84, 'ea': 1.81, 'ra': 1.78, 'ce': 1.75,
+            'om': 1.54, 'ur': 1.51, 'ca': 1.48, 'el': 1.45, 'ta': 1.42, 'la': 1.39,
+            'si': 1.57, 'pe': 1.53, 'ti': 1.50, 'fo': 1.47, 'ho': 1.44, 'ec': 1.41
         }
+        
+        # Build 26x26 dictionary covering all letter pairs 'a'-'z'
+        alphabet = 'abcdefghijklmnopqrstuvwxyz'
+        self.bigram_freq = {}
+        
+        # Baseline log score for rare or non-existent transitions
+        default_rare_score = 0.10
+        
+        for c1 in alphabet:
+            for c2 in alphabet:
+                pair = c1 + c2
+                self.bigram_freq[pair] = raw_bigrams.get(pair, default_rare_score)
+                
         # Common English trigram frequencies
         self.trigram_freq = {
             'the': 5.67, 'and': 4.23, 'ing': 3.89, 'ion': 3.56, 'tio': 3.21,
-            'ent': 2.98, 'for': 2.76, 'ter': 2.54, 'tion': 2.34, 'men': 2.18
+            'ent': 2.98, 'for': 2.76, 'ter': 2.54, 'tion': 2.34, 'men': 2.18,
+            'com': 4.50, 'net': 3.80, 'org': 3.50, 'app': 3.10, 'out': 2.90
         }
         
     def extract(self, domain: str) -> Tuple[np.ndarray, Dict[str, float]]:

@@ -6,6 +6,8 @@ from typing import List, Tuple, Optional, Optional
 from shared.schemas import DNSQuery, ProtocolType
 
 try:
+    import logging
+    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
     from scapy.all import rdpcap, DNS, DNSQR, IP, IPv6  # type: ignore
     HAS_SCAPY = True
 except (ImportError, Exception):

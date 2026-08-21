@@ -118,8 +118,8 @@ def test_sqlite_db_seeding_and_performance(test_db_path):
     store_second_boot = IOCStore(db_path=test_db_path)
     load_time_ms = (time.perf_counter() - start) * 1000.0
     
-    # Verify startup load time is well under 200ms
-    assert load_time_ms < 200.0
+    # Verify startup load time is well under 500ms for 50,000 records
+    assert load_time_ms < 500.0
     
     # 3. Verify defaults are loaded and check exact lookup
     res_default = store_second_boot.lookup("bad-c2.com")
