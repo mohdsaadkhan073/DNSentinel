@@ -12,6 +12,7 @@ import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
 import { SearchModal } from './components/SearchModal';
 import { CopilotChat } from './components/CopilotChat';
+import { SettingsModal } from './components/SettingsModal';
 
 export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
@@ -20,10 +21,16 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('light'); // Light mode default
   const [globalSearch, setGlobalSearch] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedDecision, setSelectedDecision] = useState<SecurityDecisionItem | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [forensicReport, setForensicReport] = useState<any | null>(null);
+
+  // Settings & Copilot Global Configuration State
+  const [selectedModel, setSelectedModel] = useState<string>('llama3:latest');
+  const [availableModels, setAvailableModels] = useState<string[]>(['llama3:latest', 'gemma4:e2b']);
+  const [isOfflineOnly, setIsOfflineOnly] = useState<boolean>(false);
 
   // Persistent Domain Inspector Search State across Tab Navigation
   const [lastInspectedDomain, setLastInspectedDomain] = useState<string>('');
@@ -230,6 +237,7 @@ export const App: React.FC = () => {
           setTheme={setTheme}
           onOpenUpload={() => setIsUploadOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           onRefresh={handleManualRefresh}
           globalSearch={globalSearch}
           setGlobalSearch={setGlobalSearch}
@@ -332,6 +340,20 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
       />
 
+      {/* Platform & AI SOC Copilot Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        theme={theme}
+        setTheme={setTheme}
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
+        availableModels={availableModels}
+        isOfflineOnly={isOfflineOnly}
+        setIsOfflineOnly={setIsOfflineOnly}
+        onRefresh={handleManualRefresh}
+      />
+
       {/* Floating AI SOC Copilot Chatbot (SentinAI) */}
       <CopilotChat
         onNavigate={(tab) => setActiveTab(tab)}
@@ -342,6 +364,10 @@ export const App: React.FC = () => {
         onClearFilters={() => setGlobalSearch('')}
         onRefresh={handleManualRefresh}
         theme={theme}
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
+        availableModels={availableModels}
+        isOfflineOnly={isOfflineOnly}
       />
 
     </div>

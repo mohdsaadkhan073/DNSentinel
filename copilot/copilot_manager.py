@@ -100,9 +100,9 @@ class CopilotManager:
         # Add current user prompt
         messages.append({"role": "user", "content": message})
 
-        # Query local Ollama API
+        # Query local Ollama API with 60s timeout (handles model loading)
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 payload = {
                     "model": model,
                     "messages": messages,
@@ -198,7 +198,8 @@ class CopilotManager:
             )
 
         return (
-            f"I am SentinAI SOC Copilot. Local Ollama model service is currently offline (`http://localhost:11434`).\n\n"
-            f"You can ask me to evaluate domains (e.g. `Evaluate bad-c2.com`), navigate tabs (e.g. `Show Threat Analytics`), or check system status.",
+            f"I am **SentinAI**, your AI SOC Copilot focused on DNS threat analysis, domain security evaluation, and platform control.\n\n"
+            f"*(To ask general AI questions or reason with `llama3:latest`, ensure local Ollama is running at `http://localhost:11434`).*\n\n"
+            f"Try asking:\n- Evaluate `bad-c2.com` \n- Show Threat Analytics \n- Check system status",
             None
         )

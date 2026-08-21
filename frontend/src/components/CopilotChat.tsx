@@ -9,6 +9,10 @@ interface CopilotChatProps {
   onClearFilters?: () => void;
   onRefresh?: () => void;
   theme?: 'dark' | 'light';
+  selectedModel?: string;
+  setSelectedModel?: (model: string) => void;
+  availableModels?: string[];
+  isOfflineOnly?: boolean;
 }
 
 interface MessageItem {
@@ -28,7 +32,11 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
   onEvaluate,
   onClearFilters,
   onRefresh,
-  theme = 'light'
+  theme = 'light',
+  selectedModel: propSelectedModel,
+  setSelectedModel: propSetSelectedModel,
+  availableModels: propAvailableModels,
+  isOfflineOnly = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<MessageItem[]>([
@@ -42,8 +50,12 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
   const [inputMsg, setInputMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>(['llama3:latest', 'gemma4:e2b']);
-  const [selectedModel, setSelectedModel] = useState<string>('llama3:latest');
+  const [internalSelectedModel, setInternalSelectedModel] = useState<string>('llama3:latest');
   const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  const selectedModel = propSelectedModel || internalSelectedModel;
+  const setSelectedModel = propSetSelectedModel || setInternalSelectedModel;
+  const effectiveModels = propAvailableModels || availableModels;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -289,7 +301,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
           className="group flex items-center justify-center gap-2 h-12 w-12 hover:w-32 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl transition-all duration-300 border border-emerald-400/40 cursor-pointer overflow-hidden px-3"
           title="Ask AI - SentinAI SOC Copilot"
         >
-          <Bot className="w-6 h-6 shrink-0 animate-pulse" />
+          <Bot className="w-6 h-6 shrink-0" />
           <span className="text-xs font-extrabold whitespace-nowrap hidden group-hover:inline-block transition-all">
             Ask AI
           </span>
@@ -317,7 +329,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
                     onChange={(e) => setSelectedModel(e.target.value)}
                     className="bg-transparent text-[10px] theme-subtitle focus:outline-none cursor-pointer border-0 p-0 font-bold"
                   >
-                    {availableModels.map(m => (
+                    {effectiveModels.map(m => (
                       <option key={m} value={m} className="bg-slate-900 text-slate-100">{m}</option>
                     ))}
                   </select>

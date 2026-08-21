@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sun, Moon, UploadCloud, RefreshCw, X } from 'lucide-react';
+import { Search, Sun, Moon, UploadCloud, RefreshCw, X, Settings } from 'lucide-react';
 
 interface HeaderProps {
   wsConnected: boolean;
@@ -7,6 +7,7 @@ interface HeaderProps {
   setTheme: (theme: 'dark' | 'light') => void;
   onOpenUpload: () => void;
   onOpenSearch?: () => void;
+  onOpenSettings?: () => void;
   onRefresh: () => void;
   globalSearch: string;
   setGlobalSearch: (search: string) => void;
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   setTheme,
   onOpenUpload,
   onOpenSearch,
+  onOpenSettings,
   onRefresh,
   globalSearch,
   setGlobalSearch
@@ -105,6 +107,19 @@ export const Header: React.FC<HeaderProps> = ({
           title="Refresh Data & Reload Animations"
         >
           <RefreshCw className="w-4 h-4" />
+        </button>
+
+        {/* Platform & AI Settings Icon Button */}
+        <button
+          onClick={onOpenSettings}
+          className={`p-2 rounded-xl border transition-all flex items-center justify-center font-bold ${
+            theme === 'light'
+              ? 'bg-slate-100 border-slate-300 text-slate-800 hover:text-emerald-600 hover:bg-slate-200'
+              : 'bg-[#05120C] border-emerald-900/40 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/80'
+          }`}
+          title="Platform & AI SOC Copilot Settings"
+        >
+          <Settings className="w-4 h-4 hover:rotate-90 transition-transform duration-300" />
         </button>
 
       </div>
