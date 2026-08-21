@@ -117,3 +117,39 @@ class IOCStore:
         Return the total number of IOCs loaded in the store.
         """
         return len(self._store)
+
+    def get_indicators(self, limit: int = 50, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """
+        Retrieve paginated real STIX 2.1 IOC indicators with optional search filter.
+        """
+        items = []
+        search_lower = search.strip().lower()
+
+        for domain, entry in self._store.items():
+            cat = entry.get("category", "Command & Control (C2)")
+            src = entry.get("source", "STIX 2.1 / TAXII Feed")
+            
+            if search_lower and not (search_lower in domain or search_lower in cat.lower() or search_lower in src.lower()):
+                continue
+                
+            items.append({
+                "pattern": f"[domain-name:value = '{domain}']",
+                "domain": domain,
+                "category": cat,
+                "source": src,
+                "confidence": entry.get("confidence", 100.0),
+                "format": "STIX 2.1 Indicator"
+            })
+            
+            if len(items) >= offset + limit + 500: # Short-circuit search scan for performance
+                break
+
+        paginated_items = items[offset:offset+limit]
+        return {
+            "total_iocs_loaded": len(self._store),
+            "filtered_count": len(items),
+            "limit": limit,
+            "offset": offset,
+            "indicators": paginated_items
+        }
+

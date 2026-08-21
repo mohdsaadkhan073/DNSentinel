@@ -12,6 +12,8 @@ interface SettingsModalProps {
   isOfflineOnly: boolean;
   setIsOfflineOnly: (offline: boolean) => void;
   onRefresh: () => void;
+  tableLimit?: number;
+  setTableLimit?: (limit: number) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -24,7 +26,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   availableModels,
   isOfflineOnly,
   setIsOfflineOnly,
-  onRefresh
+  onRefresh,
+  tableLimit = 50,
+  setTableLimit
 }) => {
   const [ollamaOnline, setOllamaOnline] = useState<boolean>(true);
 
@@ -178,6 +182,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Telemetry Stream Table Row Limit */}
+            <div className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 flex items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold theme-title block">Live Telemetry Table Rows</span>
+                <span className="text-[11px] theme-subtitle block mt-0.5">
+                  Maximum recent DNS evaluation records displayed in stream
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={tableLimit}
+                  onChange={(e) => setTableLimit && setTableLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-28 px-3 py-2 rounded-xl bg-[var(--table-head-bg)] text-xs font-bold theme-title border border-emerald-900/30 focus:border-emerald-500 outline-none text-center font-mono"
+                  placeholder="e.g. 100"
+                />
+                <span className="text-xs theme-subtitle font-bold">rows</span>
+              </div>
             </div>
 
             {/* Manual Refresh Button */}

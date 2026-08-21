@@ -97,6 +97,10 @@ def get_intel_stats():
         ]
     }
 
+@app.get("/api/v1/intel/indicators")
+def get_intel_indicators(limit: int = 50, offset: int = 0, search: str = ""):
+    return ioc_store.get_indicators(limit=limit, offset=offset, search=search)
+
 @app.post("/api/v1/dns/evaluate")
 async def evaluate_dns_query(domain: str, client_ip: str = "192.168.1.100", qtype: str = "A"):
     query = DNSQuery(

@@ -31,6 +31,7 @@ export const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>('llama3:latest');
   const [availableModels, setAvailableModels] = useState<string[]>(['llama3:latest', 'gemma4:e2b']);
   const [isOfflineOnly, setIsOfflineOnly] = useState<boolean>(false);
+  const [tableLimit, setTableLimit] = useState<number>(50);
 
   // Persistent Domain Inspector Search State across Tab Navigation
   const [lastInspectedDomain, setLastInspectedDomain] = useState<string>('');
@@ -119,15 +120,16 @@ export const App: React.FC = () => {
     }
   ]);
 
-  // Fetch metrics & recent queries from REST API without forcing component remount
-  const fetchMetricsAndQueries = async () => {
+  // Fetch metrics & recent queries from REST API with explicit limit parameter
+  const fetchMetricsAndQueries = async (customLimit?: number) => {
+    const limitToUse = customLimit !== undefined ? customLimit : tableLimit;
     try {
       const resMetrics = await fetch('http://localhost:8000/api/v1/metrics/summary');
       if (resMetrics.ok) {
         const dataMetrics = await resMetrics.json();
         setMetrics(dataMetrics);
       }
-      const resQueries = await fetch('http://localhost:8000/api/v1/dns/queries');
+      const resQueries = await fetch(`http://localhost:8000/api/v1/dns/queries?limit=${limitToUse}`);
       if (resQueries.ok) {
         const dataQueries = await resQueries.json();
         if (dataQueries.length > 0) {
@@ -137,10 +139,16 @@ export const App: React.FC = () => {
     } catch (err) {}
   };
 
+  // Re-fetch queries automatically whenever tableLimit is updated by the user
+  useEffect(() => {
+    localStorage.setItem('dnsentinel_table_limit', tableLimit.toString());
+    fetchMetricsAndQueries(tableLimit);
+  }, [tableLimit]);
+
   // Manual Refresh Trigger (User clicks Topbar Refresh button)
   const handleManualRefresh = () => {
     setRefreshKey((prev) => prev + 1);
-    fetchMetricsAndQueries();
+    fetchMetricsAndQueries(tableLimit);
   };
 
   // WebSocket Telemetry Connection with Auto-Reconnect
@@ -159,8 +167,8 @@ export const App: React.FC = () => {
         ws.onmessage = (event) => {
           try {
             const decision: SecurityDecisionItem = JSON.parse(event.data);
-            setQueries((prev) => [decision, ...prev.slice(0, 49)]);
-            fetchMetricsAndQueries();
+            setQueries((prev) => [decision, ...prev.slice(0, Math.max(0, tableLimit - 1))]);
+            fetchMetricsAndQueries(tableLimit);
           } catch (e) {}
         };
 
@@ -352,6 +360,8 @@ export const App: React.FC = () => {
         isOfflineOnly={isOfflineOnly}
         setIsOfflineOnly={setIsOfflineOnly}
         onRefresh={handleManualRefresh}
+        tableLimit={tableLimit}
+        setTableLimit={setTableLimit}
       />
 
       {/* Floating AI SOC Copilot Chatbot (SentinAI) */}
