@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ShieldCheck, LayoutDashboard, Activity, BarChart3, UploadCloud,
-  RefreshCw, PanelLeftClose, PanelLeftOpen, Sun, Moon, Search, Network
+  RefreshCw, PanelLeftClose, PanelLeftOpen, Search, Network
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -150,21 +150,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       </div>
 
-      {/* Bottom Section: Theme Switcher & WebSocket Status Pill */}
+      {/* Bottom Section: WebSocket Status Pill */}
       <div className={`pt-4 border-t ${theme === 'light' ? 'border-emerald-900/60' : 'border-emerald-900/40'} space-y-2 font-mono`}>
-
-        {/* Theme Toggle Button */}
-        <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className={`w-full py-2 ${isCollapsed ? 'px-2 justify-center' : 'px-3 justify-between'} rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/60 flex items-center text-xs text-white transition-all`}
-          title={theme === 'dark' ? "Switch to Light Emerald Theme" : "Switch to Dark Emerald Command Theme"}
-        >
-          <div className="flex items-center gap-2">
-            {theme === 'dark' ? <Moon className="w-4 h-4 text-amber-300" /> : <Sun className="w-4 h-4 text-amber-400" />}
-            {!isCollapsed && <span>{theme === 'dark' ? 'Dark Command' : 'Light Enterprise'}</span>}
-          </div>
-          {!isCollapsed && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-900 text-emerald-200">TOGGLE</span>}
-        </button>
 
         {/* WebSocket Status Pill */}
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-3'} py-2 rounded-xl bg-emerald-950 border border-emerald-800/80 text-xs text-white`}>
