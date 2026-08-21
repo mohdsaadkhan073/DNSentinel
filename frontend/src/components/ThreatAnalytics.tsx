@@ -200,7 +200,7 @@ export const ThreatAnalytics: React.FC<ThreatAnalyticsProps> = ({ summary, queri
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {intelFeeds.map((feed, idx) => (
+          {(intelStats.feeds || intelFeeds).map((feed: any, idx: number) => (
             <div key={idx} className="p-4 rounded-xl bg-[var(--input-bg)] border border-emerald-900/20 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-bold theme-title text-xs">{feed.name}</span>
@@ -209,7 +209,7 @@ export const ThreatAnalytics: React.FC<ThreatAnalyticsProps> = ({ summary, queri
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs pt-1">
-                <span className="theme-subtitle">{feed.count}</span>
+                <span className="theme-subtitle font-bold text-emerald-500">{feed.count}</span>
                 <span className="text-[10px] text-slate-400 font-semibold">{feed.format}</span>
               </div>
             </div>
