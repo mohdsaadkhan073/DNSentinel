@@ -22,18 +22,11 @@ export const DomainInspector: React.FC<DomainInspectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SecurityDecisionItem | null>(lastResult);
 
-  // Sync state if props update externally
-  useEffect(() => {
-    if (lastDomain) setInputDomain(lastDomain);
-    if (lastResult) setResult(lastResult);
-  }, [lastDomain, lastResult]);
-
-  const handleAnalyze = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputDomain.trim()) return;
+  const runAnalysisForDomain = async (targetDomain: string) => {
+    if (!targetDomain.trim()) return;
     setLoading(true);
 
-    const domainName = inputDomain.trim();
+    const domainName = targetDomain.trim();
 
     try {
       const res = await fetch(`http://localhost:8000/api/v1/dns/evaluate?domain=${encodeURIComponent(domainName)}&qtype=A`, {
@@ -80,6 +73,25 @@ export const DomainInspector: React.FC<DomainInspectorProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Sync state & auto-evaluate if lastDomain updates externally
+  useEffect(() => {
+    if (lastDomain) {
+      setInputDomain(lastDomain);
+      if (!lastResult || lastResult.query.domain !== lastDomain) {
+        runAnalysisForDomain(lastDomain);
+      } else {
+        setResult(lastResult);
+      }
+    } else if (lastResult) {
+      setResult(lastResult);
+    }
+  }, [lastDomain, lastResult]);
+
+  const handleAnalyze = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await runAnalysisForDomain(inputDomain);
   };
 
   const isLight = theme === 'light';

@@ -4,9 +4,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio
+from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+from pydantic import BaseModel
 from shared.schemas import MetricsSummary, DNSQuery, ActionDecision
 
 from shared.config import FASTAPI_HOST, FASTAPI_PORT
@@ -20,6 +22,7 @@ from passive.tunnel_detector import TunnelDetector
 from passive.pcap_parser import PCAPParser
 from passive.zeek_parser import ZeekParser
 from passive.batch_analyzer import BatchAnalyzer
+from copilot.copilot_manager import CopilotManager
 
 # Instantiate Core System Components
 dns_cache = DNSCache()
@@ -36,6 +39,7 @@ orchestrator = Orchestrator(
 db_manager = DatabaseManager()
 ws_manager = WebSocketManager()
 batch_analyzer = BatchAnalyzer(orchestrator=orchestrator)
+copilot_manager = CopilotManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -142,6 +146,38 @@ async def upload_zeek_file(file: UploadFile = File(...)):
         "allowed": report["allowed_count"],
         "estimated_payload_bytes": report.get("total_payload_bytes", 0),
         "sample_decisions": report["decisions"][:10]
+    }
+
+class CopilotChatRequest(BaseModel):
+    message: str
+    history: Optional[list] = None
+    model: Optional[str] = "llama3:latest"
+
+@app.post("/api/v1/copilot/chat")
+async def copilot_chat_endpoint(req: CopilotChatRequest):
+    metrics_summary = await db_manager.get_metrics_summary()
+    if hasattr(metrics_summary, "model_dump"):
+        context = metrics_summary.model_dump(mode="json")
+    elif isinstance(metrics_summary, dict):
+        context = metrics_summary
+    else:
+        context = dict(metrics_summary)
+    res = await copilot_manager.chat(
+        message=req.message,
+        history=req.history or [],
+        model=req.model or "llama3:latest",
+        context=context
+    )
+    return res
+
+@app.get("/api/v1/copilot/models")
+async def copilot_models_endpoint():
+    is_online = await copilot_manager.check_online()
+    available_models = await copilot_manager.get_available_models()
+    return {
+        "online": is_online,
+        "default_model": "llama3:latest",
+        "models": available_models
     }
 
 @app.websocket("/ws/telemetry")

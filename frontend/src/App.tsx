@@ -11,6 +11,7 @@ import { PcapZeekInvestigator } from './components/PcapZeekInvestigator';
 import { EvidenceModal } from './components/EvidenceModal';
 import { UploadModal } from './components/UploadModal';
 import { SearchModal } from './components/SearchModal';
+import { CopilotChat } from './components/CopilotChat';
 
 export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
@@ -329,6 +330,18 @@ export const App: React.FC = () => {
         queries={queries}
         onSelectDecision={(decision) => setSelectedDecision(decision)}
         setActiveTab={setActiveTab}
+      />
+
+      {/* Floating AI SOC Copilot Chatbot (SentinAI) */}
+      <CopilotChat
+        onNavigate={(tab) => setActiveTab(tab)}
+        onEvaluate={(dom) => {
+          setActiveTab('DOMAIN_INSPECTOR');
+          setLastInspectedDomain(dom);
+        }}
+        onClearFilters={() => setGlobalSearch('')}
+        onRefresh={handleManualRefresh}
+        theme={theme}
       />
 
     </div>
