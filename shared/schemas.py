@@ -1,7 +1,10 @@
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
+
+def get_utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 class ProtocolType(str, Enum):
     UDP = "UDP"
@@ -20,7 +23,7 @@ class DNSQuery(BaseModel):
     client_ip: str
     protocol: ProtocolType = ProtocolType.UDP
     qtype: str = "A"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=get_utc_now)
 
 class ThreatIntelResult(BaseModel):
     matched: bool = False
@@ -59,7 +62,7 @@ class SecurityDecision(BaseModel):
     cache_hit: bool = False
     resolved_ip: Optional[str] = None
     rationale: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_utc_now)
 
 class MetricsSummary(BaseModel):
     total_queries: int = 0

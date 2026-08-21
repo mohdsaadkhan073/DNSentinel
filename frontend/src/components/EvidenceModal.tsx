@@ -33,7 +33,10 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ decision, onClose 
   const formatHumanTime = (tsStr?: string) => {
     if (!tsStr) return new Date().toLocaleString();
     try {
-      const formattedIso = tsStr.includes('Z') || tsStr.includes('T') ? tsStr : tsStr.replace(' ', 'T');
+      let formattedIso = tsStr.includes('T') ? tsStr : tsStr.replace(' ', 'T');
+      if (formattedIso.includes('T') && !formattedIso.endsWith('Z') && !formattedIso.includes('+') && !formattedIso.includes('-', 10)) {
+        formattedIso = formattedIso + 'Z';
+      }
       const d = new Date(formattedIso);
       if (isNaN(d.getTime())) return tsStr;
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-US');

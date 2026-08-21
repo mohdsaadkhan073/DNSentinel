@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Eye, ShieldX, AlertTriangle, CheckCircle2, Zap, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, ShieldX, AlertTriangle, CheckCircle2, Zap, ArrowUpDown, ChevronLeft, ChevronRight, RotateCcw, Clock } from 'lucide-react';
 
 export interface SecurityDecisionItem {
   decision_id: string;
@@ -29,17 +29,26 @@ interface TableProps {
   theme?: 'dark' | 'light';
 }
 
-type SortField = 'action' | 'domain' | 'client_ip' | 'composite_risk_score' | 'latency_ms' | 'resolved_ip';
+type SortField = 'action' | 'domain' | 'client_ip' | 'composite_risk_score' | 'latency_ms' | 'resolved_ip' | 'timestamp';
 
 export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecision, externalSearch = '', theme = 'light' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAction, setFilterAction] = useState<string>('ALL');
-  const [sortField, setSortField] = useState<SortField>('composite_risk_score');
+  const [sortField, setSortField] = useState<SortField>('timestamp');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
   const activeSearch = (searchTerm || externalSearch).toLowerCase();
+  const isFiltered = searchTerm.trim() !== '' || filterAction !== 'ALL' || externalSearch.trim() !== '' || sortField !== 'timestamp' || sortAsc !== false;
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterAction('ALL');
+    setSortField('timestamp');
+    setSortAsc(false);
+    setCurrentPage(1);
+  };
 
   // Filter queries based on search term and action pills
   const filteredQueries = useMemo(() => {
@@ -67,6 +76,9 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
       } else if (sortField === 'client_ip') {
         valA = a.query.client_ip;
         valB = b.query.client_ip;
+      } else if (sortField === 'timestamp') {
+        valA = new Date(a.query.timestamp || a.created_at || 0).getTime();
+        valB = new Date(b.query.timestamp || b.created_at || 0).getTime();
       }
 
       if (valA < valB) return sortAsc ? -1 : 1;
@@ -91,13 +103,28 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
     }
   };
 
+  const formatTime = (ts?: string) => {
+    if (!ts) return 'Just now';
+    try {
+      let dateStr = ts;
+      if (dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+        dateStr = dateStr + 'Z';
+      }
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return ts;
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    } catch {
+      return ts;
+    }
+  };
+
   const isLight = theme === 'light';
 
   return (
     <div className="soc-card rounded-2xl overflow-hidden mb-6 animate-section-fade">
 
       {/* Table Header & Search/Filter Bar */}
-      <div className="p-5 border-b border-emerald-900/20 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="p-5 border-b border-emerald-900/20 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold theme-title font-mono tracking-wide flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -106,9 +133,9 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
           <p className="text-xs theme-subtitle mt-0.5">Real-time threat engine inspection log ({sortedQueries.length} total events)</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-wrap">
           {/* Table Search Input Bar */}
-          <div className="relative w-full sm:w-64 flex items-center">
+          <div className="relative w-full sm:w-56 flex items-center">
             <Search className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none shrink-0" />
             <input
               type="text"
@@ -145,6 +172,18 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
               </button>
             ))}
           </div>
+
+          {/* Highly Highlighted Clear Filters Button (Static Red Pill) */}
+          {isFiltered && (
+            <button
+              onClick={handleClearFilters}
+              className="px-3.5 py-1.5 rounded-xl font-mono font-bold text-xs bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 flex items-center gap-1.5 transition-all border border-rose-400/40 cursor-pointer active:scale-95"
+              title="Clear all active table search keywords, action filters, and custom sorting"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Clear Filters</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -153,6 +192,18 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[var(--table-head-bg)] border-b border-emerald-900/20 text-[11px] font-mono theme-subtitle uppercase tracking-wider select-none">
+              {/* TIME Column (First Column) */}
+              <th
+                onClick={() => handleSort('timestamp')}
+                className="py-3 px-4 cursor-pointer hover:theme-title transition-colors whitespace-nowrap"
+              >
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-emerald-500" />
+                  <span>Time</span>
+                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                </div>
+              </th>
+
               {/* ACTION Column (Middle Aligned) */}
               <th
                 onClick={() => handleSort('action')}
@@ -164,10 +215,10 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                 </div>
               </th>
 
-              {/* DOMAIN Column */}
+              {/* DOMAIN Column (Fixed Width 180px) */}
               <th
                 onClick={() => handleSort('domain')}
-                className="py-3 px-4 cursor-pointer hover:theme-title transition-colors"
+                className="py-3 px-4 cursor-pointer hover:theme-title transition-colors w-[180px] max-w-[180px]"
               >
                 <div className="flex items-center gap-1">
                   <span>Domain</span>
@@ -232,7 +283,7 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
           <tbody className="divide-y divide-emerald-900/20 font-mono text-xs">
             {paginatedQueries.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center theme-subtitle italic">
+                <td colSpan={9} className="py-8 text-center theme-subtitle italic">
                   No telemetry queries matched your filter.
                 </td>
               </tr>
@@ -255,6 +306,11 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                     className="hover:bg-[var(--table-row-hover)] cursor-pointer transition-colors group"
                     title="Click anywhere on row to view full inspection evidence"
                   >
+                    {/* Time / Timestamp (First Column, Clean Text) */}
+                    <td className="py-3.5 px-4 theme-subtitle whitespace-nowrap font-mono text-xs">
+                      {formatTime(item.query.timestamp || item.created_at)}
+                    </td>
+
                     {/* Action Badge (Middle Aligned) */}
                     <td className="py-3.5 px-4 whitespace-nowrap text-center">
                       <div className="flex justify-center">
@@ -265,9 +321,9 @@ export const QueryStreamTable: React.FC<TableProps> = ({ queries, onSelectDecisi
                       </div>
                     </td>
 
-                    {/* Domain */}
-                    <td className="py-3.5 px-4 font-semibold theme-title group-hover:text-emerald-500 transition-colors">
-                      <div className="max-w-[260px] truncate" title={item.query.domain}>
+                    {/* Domain (Fixed Width 180px) */}
+                    <td className="py-3.5 px-4 font-semibold theme-title group-hover:text-emerald-500 transition-colors w-[180px] max-w-[180px]">
+                      <div className="w-[180px] max-w-[180px] truncate" title={item.query.domain}>
                         {item.query.domain}
                       </div>
                     </td>
